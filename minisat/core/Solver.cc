@@ -959,3 +959,298 @@ void Solver::garbageCollect()
                ca.size()*ClauseAllocator::Unit_Size, to.size()*ClauseAllocator::Unit_Size);
     to.moveTo(ca);
 }
+
+bool Solver::prop_check(const vec<Lit>& assumps, vec<Lit>& prop, int psaving) {
+    prop.clear();
+
+    if (!ok)
+        return false;
+
+    bool st = true;
+    int level = decisionLevel();
+    CRef confl = CRef_Undef;
+
+    // dealing with phase saving
+    int psaving_copy = phase_saving;
+    phase_saving = psaving;
+
+    // propagate each assumption at a new decision level
+    for (int i = 0; st && confl == CRef_Undef && i < assumps.size(); ++i) {
+        Lit p = assumps[i];
+
+        if (value(p) == l_False)
+            st = false;
+        else if (value(p) != l_True) {
+            newDecisionLevel();
+            uncheckedEnqueue(p, decisionLevel());
+            confl = propagate();
+        }
+    }
+
+    // copying the result
+    if (decisionLevel() > level) {
+        for (int c = trail_lim[level]; c < trail.size(); ++c)
+            prop.push(trail[c]);
+
+        // if there is a conflict, pushing
+        // the conflicting literal as well
+        // here we may choose a wrong literal
+        // in Glucose if the clause is binary!
+        if (confl != CRef_Undef)
+            prop.push(ca[confl][0]);
+
+        // backtracking
+        cancelUntil(level);
+    }
+
+    // restoring phase saving
+    phase_saving = psaving_copy;
+
+    return st && confl == CRef_Undef;
+}
+
+bool Solver::gen_all_valid_assumptions_rc2(
+    std::vector<int> d_set,
+    uint64_t& total_count,
+    std::vector<std::vector<int>>& vector_of_assumptions,
+    int limit)
+{
+    // d_set - vector of variables (backdoor)
+    // total_count = ?
+    // vector_of_assumptions - vector of bitmasks
+    // (each bitmask represents a hard task)
+    assert(d_set.size() < 64);
+
+    bool verb = false;
+    if (verb) {
+        printf("c checking backdoor: ");
+        for (int j = 0; j < d_set.size(); j++) {
+            printf("%i ", d_set[j] + 1);
+        }
+        printf("\n");
+    }
+
+    int d_size = d_set.size();
+
+    assumptions.clear();
+    cancelUntil(0);
+
+    // aux is a bit-mask for a task
+    std::vector<int> aux(d_set.size());
+    for (int i = 0; i < d_set.size(); i++) {
+        aux[i] = 0;
+        assumptions.push(~mkLit(d_set[i]));
+    }
+
+    vector_of_assumptions.clear();
+    total_count = 0;
+
+    bool res = true;
+    assert(ok);
+    // int      backtrack_level;
+    bool ascend = false;
+
+    bool flag = true;
+    if (d_size == 0) {
+        return true;
+    }
+
+    int cur_pos = 0;
+    while (flag) {
+        CRef confl = propagate();
+        // At the current stage there is no need for smart analysis of conflicts
+        // during essentially random sampling.
+        if (confl != CRef_Undef) {
+            // CONFLICT
+            // on conflict we switch ascend to true and move to the next assumption
+            ascend = true;
+
+            if (verb) {
+                printf("c conflict derived for assumptions: ");
+                for (int j = 0; j < decisionLevel(); j++) {
+                    printf("%i ",
+                        ((var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1)));
+                }
+                printf("\n");
+            }
+
+        } else {
+            if (decisionLevel() == d_size) {
+                // found a valid vector of assumptions:
+                if (vector_of_assumptions.size() < limit) {
+                    vector_of_assumptions.push_back(aux);
+                }
+
+                if (verb) {
+                    printf("c valid vector of assumptions: ");
+                    for (int j = 0; j < decisionLevel(); j++) {
+                        printf("%i ", ((var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1)));
+                    }
+                    printf("\n");
+                }
+
+                ascend = true;
+                total_count++;
+            }
+            while (decisionLevel() < d_size) {
+                Lit p = assumptions[decisionLevel()];
+                if (value(p) == l_True) {
+                    // Dummy decision level:
+                    newDecisionLevel();
+                } else if (value(p) == l_False) {
+                    ascend = true;
+
+                    if (verb) {
+                        printf("c propagated a different value for assumptions: ");
+                        for (int j = 0; j < decisionLevel(); j++) {
+                            printf("%i ", ((var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1)));
+                        }
+                        printf("\n");
+                    }
+
+                    break;
+                } else {
+                    newDecisionLevel();
+                    uncheckedEnqueue(p, decisionLevel());
+                    break;
+                }
+            }
+        }
+
+        if (ascend == true) {
+            assert(decisionLevel() <= d_size + 1);
+            if (verb) {
+                printf("c decisionlevel %i\n", decisionLevel());
+                printf("c current aux value: ");
+                for (int j = 0; j < decisionLevel(); j++) {
+                    printf("%i ", aux[j]);
+                }
+                printf("\n");
+            }
+            ascend = false;
+            int g = decisionLevel() - 1;
+            while (g >= 0) {
+                if (aux[g] == 1) {
+                    g--;
+                } else {
+                    break;
+                }
+            }
+            if (g == -1) {
+                // time to break;
+                flag = false;
+                break;
+            }
+            int g_s = g;
+
+            assert(aux[g] == 0);
+            aux[g] = 1;
+            // move to the next binary number
+            if (g < d_size) {
+                g++;
+                while (g < d_size) {
+                    aux[g] = 0;
+                    g++;
+                }
+            }
+
+            if (verb) {
+                printf("c next aux value: ");
+                for (int j = 0; j < d_size; j++) {
+                    printf("%i ", aux[j]);
+                }
+                printf("\n");
+            }
+            // modify assumptions
+            for (int j = g_s; j < d_size; j++) {
+                if (aux[j] == 0) {
+                    assumptions[j] = ~mkLit(d_set[j]);
+                } else {
+                    assumptions[j] = mkLit(d_set[j]);
+                }
+            }
+            cancelUntil(g_s);
+        }
+    }
+
+    cancelUntil(0);
+    //  std::cout << "Valid: " << valid_count << "\n";
+    //  std::cout << "Really found : " << vector_of_assumptions.size()<< "\n";
+    assumptions.clear();
+    return true;
+}
+
+bool Solver::gen_all_valid_assumptions_propcheck(
+    std::vector<int> d_set,
+    uint64_t& total_count,
+    std::vector<std::vector<int>>& vector_of_assumptions)
+{
+    vector_of_assumptions.clear();
+    total_count = 0;
+    int checked_points = 0;
+
+    bool verb = !true;
+    if (verb) {
+        printf("c checking backdoor: ");
+        for (int j = 0; j < d_set.size(); j++) {
+            printf("%i ", d_set[j] + 1);
+        }
+        printf("\n");
+    }
+
+    int d_size = d_set.size();
+
+    vec<Lit> assumps;
+    std::vector<int> aux(d_set.size());
+    for (int i = 0; i < d_set.size(); i++) {
+        aux[i] = 0;
+        assumps.push(~mkLit(d_set[i]));
+    }
+
+    bool flag = true;
+    while (flag == true) {
+        checked_points++;
+        for (int j = 0; j < d_size; j++) {
+            if (aux[j] == 0) {
+                assumps[j] = ~mkLit(d_set[j]);
+            } else {
+                assumps[j] = mkLit(d_set[j]);
+            }
+        }
+
+        vec<Lit> prop;
+        bool b = prop_check(assumps, prop, 0);
+        cancelUntil(0);
+        if (b == true) {
+            vector_of_assumptions.push_back(aux);
+            total_count++;
+        }
+
+        int g = aux.size() - 1;
+
+        while ((aux[g] == 1) && (g >= 0)) {
+            g--;
+        }
+        if (g == -1) {
+            // time to break;
+            flag = false;
+            break;
+        }
+
+        assert(aux[g] == 0);
+        aux[g] = 1;
+        // move to the next binary number
+        if (g < d_size) {
+            g++;
+            while (g < d_size) {
+                aux[g] = 0;
+                g++;
+            }
+        }
+    }
+    cancelUntil(0);
+    if (verb == true) {
+        printf("c Checked %i points, %i valid\n", checked_points, total_count);
+    }
+    return true;
+}
