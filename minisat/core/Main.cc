@@ -21,8 +21,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <errno.h>
 #include <signal.h>
 
-#include <vector>
 #include <iostream>
+#include <vector>
 
 #include "minisat/core/Dimacs.h"
 #include "minisat/core/EA.h"
@@ -175,23 +175,22 @@ int main(int argc, char** argv) {
         signal(SIGXCPU, SIGINT_interrupt);
 #endif
 
-        int numIterations = 3;
+        int numIterations = 1000;
         int seed = 42;
         EvolutionaryAlgorithm ea(S, seed);
 
-        // First run of EA
-        Instance best1 = ea.run(numIterations);
+        // Run EA
+        Instance best = ea.run(numIterations);
 
-        std::cout << std::endl;
-        std::cout << "------------------------------------------------------" << std::endl;
-        std::cout << std::endl;
+        for (int i = 0; i < 10; ++i) {
+            // Extend `ea.unusedVariables` with `best.variables`
+            std::vector<int> vars = best.getVariables();
+            ea.unusedVariables.insert(ea.unusedVariables.end(), vars.begin(), vars.end());
 
-        // Extend `ea.unusedVariables` with `best1.variables`
-        std::vector<int> vars1 = best1.variables();
-        ea.unusedVariables.insert(ea.unusedVariables.end(), vars1.begin(), vars1.end());
-
-        // Second run of EA
-        Instance best2 = ea.run(numIterations);
+            // Another run of EA
+            std::cout << "\n----------------------------------------\n\n";
+            best = ea.run(numIterations);
+        }
 
         //         if (!S.simplify()){
         //             if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);

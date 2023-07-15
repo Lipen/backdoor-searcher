@@ -25,7 +25,7 @@ class EvolutionaryAlgorithm {
     std::unordered_map<std::vector<bool>, double> cache;
 
     Instance initialize(int numVariables);
-    double fitness(Instance& individual);
+    double calculateFitness(Instance& individual);
     void mutate(Instance& mutatedIndividual);
 
     bool is_cached(Instance& instance, double& fitness);
