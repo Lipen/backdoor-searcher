@@ -1230,7 +1230,7 @@ bool Solver::gen_all_valid_assumptions_propcheck(
     }
     cancelUntil(0);
     if (verb == true) {
-        printf("c Checked %i points, %i valid\n", checked_points, total_count);
+        printf("c Checked %i points, %lli valid\n", checked_points, total_count);
     }
     return true;
 }
