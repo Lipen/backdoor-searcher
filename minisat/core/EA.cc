@@ -62,8 +62,8 @@ class Instance {
 
 EvolutionaryAlgorithm::EvolutionaryAlgorithm(Solver& solver, std::vector<int> unusedVariables)
     : solver(solver), unusedVariables(unusedVariables) {
-        std::cout << "EA created" << std::endl;
-    }
+    std::cout << "EA created" << std::endl;
+}
 
 EvolutionaryAlgorithm::~EvolutionaryAlgorithm() {}
 
@@ -159,7 +159,7 @@ void EvolutionaryAlgorithm::run(int numIterations, int seed) {
             bestFitness = mutatedFitness;
         }
 
-        instance = mutatedInstance; /// Note: this is (1,1), not (1+1)
+        instance = mutatedInstance;  /// Note: this is (1,1), not (1+1)
     }
 
     std::cout << "Best fitness: " << bestFitness << std::endl;

@@ -12,7 +12,7 @@ class Instance;
 
 class EvolutionaryAlgorithm {
    public:
-    EvolutionaryAlgorithm(Solver& solver, std::vector<int> unusedVariables={});
+    EvolutionaryAlgorithm(Solver& solver, std::vector<int> unusedVariables = {});
     ~EvolutionaryAlgorithm();
 
     void run(int numIterations, int seed = -1);

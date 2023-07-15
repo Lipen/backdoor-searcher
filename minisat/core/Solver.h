@@ -272,7 +272,7 @@ protected:
 
 
     // Extra prop-related stuff:
-
+public:
     bool                gen_all_valid_assumptions_propcheck(std::vector<int> d_set, uint64_t& total_count, std::vector<std::vector<int>>& vector_of_assumptions);
     bool                gen_all_valid_assumptions_rc2(std::vector<int> d_set, uint64_t& total_count, std::vector<std::vector<int>>& vector_of_assumptions, int limit);
 
