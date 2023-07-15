@@ -202,9 +202,12 @@ int main(int argc, char** argv) {
             exit(0);
         }
 
-        std::vector<int> unused = {};
-        EvolutionaryAlgorithm ea(S, unused);
-        ea.run(100);
+        // std::vector<int> unused = {};
+        // EvolutionaryAlgorithm ea(S, unused);
+        // int numIterations = 100;
+        // int seed = 42;
+        // ea.run(numIterations, seed);
+        fprintf(stderr, "Nope\n");
 
         //         vec<Lit> dummy;
         //         lbool ret = S.solveLimited(dummy);

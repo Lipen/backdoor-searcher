@@ -995,14 +995,14 @@ bool Solver::gen_all_valid_assumptions_rc2(
     std::vector<int> d_set,
     uint64_t& total_count,
     std::vector<std::vector<int>>& vector_of_assumptions,
-    int limit) {
+    int limit,
+    bool verb) {
     // d_set - vector of variables (backdoor)
     // total_count = ?
     // vector_of_assumptions - vector of bitmasks
     // (each bitmask represents a hard task)
     assert(d_set.size() < 64);
 
-    bool verb = false;
     if (verb) {
         printf("c checking backdoor: ");
         for (int j = 0; j < d_set.size(); j++) {
@@ -1155,8 +1155,8 @@ bool Solver::gen_all_valid_assumptions_rc2(
     }
 
     cancelUntil(0);
-    //  std::cout << "Valid: " << valid_count << "\n";
-    //  std::cout << "Really found : " << vector_of_assumptions.size()<< "\n";
+    printf("c Total: %lli\n", total_count);
+    printf("c Really found: %lli\n", vector_of_assumptions.size());
     assumptions.clear();
     return true;
 }
@@ -1164,12 +1164,12 @@ bool Solver::gen_all_valid_assumptions_rc2(
 bool Solver::gen_all_valid_assumptions_propcheck(
     std::vector<int> d_set,
     uint64_t& total_count,
-    std::vector<std::vector<int>>& vector_of_assumptions) {
+    std::vector<std::vector<int>>& vector_of_assumptions,
+    bool verb) {
     vector_of_assumptions.clear();
     total_count = 0;
     int checked_points = 0;
 
-    bool verb = !true;
     if (verb) {
         printf("c checking backdoor: ");
         for (int j = 0; j < d_set.size(); j++) {

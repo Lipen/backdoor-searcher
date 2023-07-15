@@ -1,111 +1,126 @@
 #include "minisat/core/EA.h"
 
 #include <algorithm>
-#include <functional>
 #include <iostream>
-#include <random>
-#include <vector>
-
-#include "minisat/core/Solver.h"
 
 namespace Minisat {
 
-class Instance {
-    std::vector<int> data;
-
-   public:
-    double _cached_fitness = -1;
-
-    Instance(std::vector<int> data) : data(std::move(data)) {}
-    ~Instance() {}
-
-    int operator[](size_t index) const {
-        return data[index];
+EvolutionaryAlgorithm::EvolutionaryAlgorithm(Solver& solver, int seed)
+    : solver(solver) {
+    if (seed != -1) {
+        gen.seed(seed);
     }
-    int& operator[](size_t index) {
-        return data[index];
-    }
-
-    size_t size() const {
-        return data.size();
-    }
-
-    // Iterator support
-    class Iterator {
-        std::vector<int>::iterator iter;
-
-       public:
-        explicit Iterator(std::vector<int>::iterator iter) : iter(iter) {}
-
-        int operator*() const {
-            return *iter;
-        }
-
-        Iterator& operator++() {
-            ++iter;
-            return *this;
-        }
-
-        bool operator!=(const Iterator& other) const {
-            return iter != other.iter;
-        }
-    };
-
-    Iterator begin() {
-        return Iterator(data.begin());
-    }
-
-    Iterator end() {
-        return Iterator(data.end());
-    }
-};
-
-EvolutionaryAlgorithm::EvolutionaryAlgorithm(Solver& solver, std::vector<int> unusedVariables)
-    : solver(solver), unusedVariables(unusedVariables) {
-    std::cout << "EA created" << std::endl;
 }
 
-EvolutionaryAlgorithm::~EvolutionaryAlgorithm() {}
+// Run the evolutionary algorithm
+Instance EvolutionaryAlgorithm::run(int numIterations, int seed) {
+    if (seed != -1) {
+        gen.seed(seed);
+    }
+
+    std::cout << "Running EA for " << numIterations << " iterations with seed " << seed << "..." << std::endl;
+
+    std::cout << "solver variables: " << solver.nVars() << std::endl;
+    std::cout << "unused variables: " << unusedVariables.size() << std::endl;
+
+    std::cout << std::endl;
+
+    int numVariables = solver.nVars();
+    Instance instance = initialize(numVariables);
+    double fit = fitness(instance);
+    std::cout << "Initial instance: " << instance << std::endl;
+    std::cout << "Initial fitness: " << fit << std::endl;
+
+    int bestIteration = 0;
+    Instance best = instance;
+    double bestFitness = fit;
+
+    for (int i = 1; i <= numIterations; ++i) {
+        std::cout << std::endl;
+        std::cout << "== Iteration #" << i << std::endl;
+
+        Instance mutatedInstance(instance);  // copy
+        mutate(mutatedInstance);
+        double _ignore;
+        while (is_cached(mutatedInstance, _ignore)) {
+            std::cout << "mutating again..." << std::endl;
+            mutate(mutatedInstance);
+        }
+        std::cout << "Mutated instance: " << mutatedInstance << std::endl;
+
+        double mutatedFitness = fitness(mutatedInstance);
+        std::cout << "Mutated fitness = " << mutatedFitness << std::endl;
+
+        // Update the best
+        if (mutatedFitness < bestFitness) {
+            bestIteration = i;
+            best = mutatedInstance;
+            bestFitness = mutatedFitness;
+        }
+
+        // (1+1) strategy: replace 'current' instance if mutated is not worse
+        if (mutatedFitness <= fit) {
+            instance = mutatedInstance;
+            fit = mutatedFitness;
+        }
+    }
+
+    std::cout << std::endl;
+    std::cout << "Best iteration: " << bestIteration << std::endl;
+    std::cout << "Best fitness: " << bestFitness << std::endl;
+    std::cout << "Best instance: " << best << std::endl;
+    return best;
+}
 
 // Create an initial individual
 Instance EvolutionaryAlgorithm::initialize(int numVariables) {
-    std::vector<int> data(numVariables);
+    std::vector<bool> data(numVariables);  // initially filled with `false`
     // TODO: fill random if necessary
     Instance instance(data);
     return instance;
 }
 
 // Calculate the fitness value of the individual
-double EvolutionaryAlgorithm::fitness(Instance& individual) {
-    if (individual._cached_fitness != -1) {
-        // TODO: cache globally
-        return individual._cached_fitness;
-    }
+double EvolutionaryAlgorithm::fitness(Instance& instance) {
+    double fitness;
+    if (!is_cached(instance, fitness)) {
+        if (instance._cached_fitness != -1) {
+            fitness = instance._cached_fitness;
+            std::cout << "cached fitness: " << fitness << std::endl;
+        } else {
+            std::cout << "computing fitness" << std::endl;
 
-    std::vector<int> activeVariables;
-    for (int i = 0; i < (int)individual.size(); ++i) {
-        if (individual[i]) {
-            // Note: variables are 0-based, so we are just passing `i` as a variable
-            activeVariables.push_back(i);
+            std::vector<int> variables = instance.variables();
+            std::cout << "variables: " << variables.size() << std::endl;
+
+            if (variables.empty()) {
+                return std::numeric_limits<double>::max();
+            }
+
+            std::vector<std::vector<int>> cubes;
+            uint64_t total_count;
+            bool verb = false;
+            solver.gen_all_valid_assumptions_propcheck(variables, total_count, cubes, verb);
+
+            int numValuations = 1 << variables.size();  // 2^|B|
+            // `rho` is the proportion of "easy" tasks:
+            double rho = static_cast<double>(total_count) / static_cast<double>(numValuations);
+            std::cout << "rho = " << rho << std::endl;
+
+            //! fitness = log2( rho * 2^size + (1-rho) * 2^const )
+            int size = variables.size();
+            double magic_number = 1 << 20;
+            fitness = std::log2(rho * std::pow(2, size) + (1 - rho) * magic_number);
         }
+
+        cache.emplace(instance.data, fitness);
     }
 
-    std::vector<std::vector<int>> hardCubes;
-    uint64_t totalCount = 0;
-    solver.gen_all_valid_assumptions_propcheck(activeVariables, totalCount, hardCubes);
-    // hardCubes now contains all the hard tasks (each task is a vector of literals (cube))
+    if (instance._cached_fitness != -1) {
+        assert(instance._cached_fitness == fitness);
+    }
 
-    int numUnknowns = hardCubes.size();  //|H|
-    int size = activeVariables.size();   // |B|
-    int numValuations = 1 << size;       // 2^|B|
-    // `rho` is the proportion of "easy" tasks:
-    double rho = 1.0 - (static_cast<double>(numUnknowns) / static_cast<double>(numValuations));
-
-    //! fitness = log2( rho * 2^size + (1-rho) * 2^const )
-    double magic_number = 1 << 20;
-    double fitness = std::log2(rho * std::pow(2, size) + (1 - rho) * magic_number);
-
-    individual._cached_fitness = fitness;
+    instance._cached_fitness = fitness;
     return fitness;
 }
 
@@ -126,48 +141,13 @@ void EvolutionaryAlgorithm::mutate(Instance& mutatedIndividual) {
     }
 }
 
-// Perform the evolutionary algorithm
-void EvolutionaryAlgorithm::run(int numIterations, int seed) {
-    if (seed == -1) {
-        std::random_device rd;
-        seed = rd();
+bool EvolutionaryAlgorithm::is_cached(Instance& instance, double& fitness) {
+    auto it = cache.find(instance.data);
+    if (it != cache.end()) {
+        fitness = it->second;
+        return true;
     }
-    gen.seed(seed);
-
-    std::cout << "Running EA for " << numIterations << " iterations with seed " << seed << "..." << std::endl;
-
-    int numVariables = solver.nVars();
-    Instance instance = initialize(numVariables);
-    Instance bestInstance = instance;
-    double bestFitness = fitness(bestInstance);
-
-    std::cout << "Initial fitness: " << bestFitness << std::endl;
-    std::cout << "Initial instance: ";
-    for (int bit : bestInstance) {
-        std::cout << bit;
-    }
-
-    for (int i = 1; i <= numIterations; ++i) {
-        std::cout << "Iteration #" << i << std::endl;
-
-        Instance mutatedInstance = instance;  // copy
-        mutate(mutatedInstance);
-        double mutatedFitness = fitness(mutatedInstance);
-
-        if (mutatedFitness <= bestFitness) {
-            bestInstance = mutatedInstance;
-            bestFitness = mutatedFitness;
-        }
-
-        instance = mutatedInstance;  /// Note: this is (1,1), not (1+1)
-    }
-
-    std::cout << "Best fitness: " << bestFitness << std::endl;
-    std::cout << "Best instance: ";
-    for (int bit : bestInstance) {
-        std::cout << bit;
-    }
-    std::cout << std::endl;
+    return false;
 }
 
 }  // namespace Minisat
