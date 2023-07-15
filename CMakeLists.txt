@@ -30,6 +30,7 @@ add_library(libminisat STATIC
     minisat/core/Solver.cc
     minisat/core/SolverTypes.cc
     minisat/core/ThrowOOMException.cc
+    minisat/core/EA.cc
     minisat/utils/Options.cc
     minisat/utils/System.cc
     minisat/simp/SimpSolver.cc
@@ -39,6 +40,7 @@ add_library(libminisat STATIC
     minisat/core/Solver.h
     minisat/core/SolverTypes.h
     minisat/core/ThrowOOMException.h
+    minisat/core/EA.h
     minisat/mtl/Alg.h
     minisat/mtl/Alloc.h
     minisat/mtl/Heap.h
