@@ -1155,8 +1155,10 @@ bool Solver::gen_all_valid_assumptions_rc2(
     }
 
     cancelUntil(0);
-    printf("c Total: %lli\n", total_count);
-    printf("c Really found: %lli\n", vector_of_assumptions.size());
+    if (verb) {
+        printf("c Total: %lli\n", total_count);
+        printf("c Really found: %lli\n", vector_of_assumptions.size());
+    }
     assumptions.clear();
     return true;
 }
@@ -1229,7 +1231,7 @@ bool Solver::gen_all_valid_assumptions_propcheck(
         }
     }
     cancelUntil(0);
-    if (verb == true) {
+    if (verb) {
         printf("c Checked %i points, %lli valid\n", checked_points, total_count);
     }
     return true;

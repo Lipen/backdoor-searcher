@@ -4,6 +4,7 @@
 #include <random>
 #include <unordered_map>
 #include <vector>
+#include <set>
 
 #include "minisat/core/Instance.h"
 #include "minisat/core/Solver.h"
@@ -15,7 +16,7 @@ class EvolutionaryAlgorithm {
     virtual ~EvolutionaryAlgorithm() = default;
     explicit EvolutionaryAlgorithm(Solver& solver, int seed = -1);
 
-    std::vector<int> unusedVariables;
+    std::set<int> unusedVariables;
 
     Instance run(int numIterations, int seed = -1);
 

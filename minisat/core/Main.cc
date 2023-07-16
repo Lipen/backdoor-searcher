@@ -175,17 +175,18 @@ int main(int argc, char** argv) {
         signal(SIGXCPU, SIGINT_interrupt);
 #endif
 
-        int numIterations = 1000;
+        int numRuns = 1;
+        int numIterations = 100000;
         int seed = 42;
         EvolutionaryAlgorithm ea(S, seed);
 
         // Run EA
         Instance best = ea.run(numIterations);
 
-        for (int i = 0; i < 10; ++i) {
+        for (int i = 2; i <= numRuns; ++i) {
             // Extend `ea.unusedVariables` with `best.variables`
             std::vector<int> vars = best.getVariables();
-            ea.unusedVariables.insert(ea.unusedVariables.end(), vars.begin(), vars.end());
+            ea.unusedVariables.insert(vars.begin(), vars.end());
 
             // Another run of EA
             std::cout << "\n----------------------------------------\n\n";

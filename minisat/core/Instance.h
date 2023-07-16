@@ -1,6 +1,7 @@
 #ifndef INSTANCE_HPP
 #define INSTANCE_HPP
 
+#include <algorithm>
 #include <iostream>
 #include <ostream>
 #include <vector>
@@ -26,6 +27,10 @@ struct Instance {
             _cached_fitness = -1;
         }
         return *this;
+    }
+
+    int numVariables() {
+        return std::count(begin(), end(), true);
     }
 
     std::vector<int> getVariables() {
@@ -60,8 +65,9 @@ struct Instance {
 
             std::vector<std::vector<int>> cubes;
             uint64_t total_count;
-            bool verb = false;
-            solver.gen_all_valid_assumptions_propcheck(vars, total_count, cubes, verb);
+            bool verb = !true;
+            // solver.gen_all_valid_assumptions_propcheck(vars, total_count, cubes, verb);
+            solver.gen_all_valid_assumptions_rc2(vars, total_count, cubes, 0, verb);
 
             int numValuations = 1 << vars.size();  // 2^|B|
             // `rho` is the proportion of "easy" tasks:
