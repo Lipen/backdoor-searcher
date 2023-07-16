@@ -11,10 +11,10 @@
 namespace Minisat {
 
 struct Instance {
-    std::vector<bool> data;
+    std::vector<int> data;
     double _cached_fitness = -1;
 
-    Instance(std::vector<bool> data) : data(std::move(data)) {}
+    Instance(int size) : data(size, -1) {}
     ~Instance() {}
 
     // Copy constructor
@@ -30,15 +30,21 @@ struct Instance {
     }
 
     int numVariables() {
-        return std::count(begin(), end(), true);
+        int count = 0;
+        for (int x : *this) {
+            if (x != -1) {
+                count++;
+            }
+        }
+        return count;
     }
 
     std::vector<int> getVariables() {
         std::vector<int> variables;
-        for (size_t i = 0; i < size(); ++i) {
-            if ((*this)[i]) {
-                // Note: variables in MiniSat are 0-based, so we are just using `i` as a variable
-                int var = (int)i;
+        for (int x : *this) {
+            if (x != -1) {
+                // Note: variables in MiniSat are 0-based
+                int var = (int)x;
                 variables.push_back(var);
             }
         }
@@ -66,8 +72,8 @@ struct Instance {
             std::vector<std::vector<int>> cubes;
             uint64_t total_count;
             bool verb = !true;
-            // solver.gen_all_valid_assumptions_propcheck(vars, total_count, cubes, verb);
-            solver.gen_all_valid_assumptions_rc2(vars, total_count, cubes, 0, verb);
+            solver.gen_all_valid_assumptions_propcheck(vars, total_count, cubes, verb);
+            // solver.gen_all_valid_assumptions_rc2(vars, total_count, cubes, 0, verb);
 
             int numValuations = 1 << vars.size();  // 2^|B|
             // `rho` is the proportion of "easy" tasks:
@@ -81,10 +87,10 @@ struct Instance {
         }
     }
 
-    bool operator[](size_t index) const {
+    int operator[](size_t index) const {
         return data[index];
     }
-    std::vector<bool>::reference operator[](size_t index) {
+    int& operator[](size_t index) {
         return data[index];
     }
 
@@ -92,8 +98,8 @@ struct Instance {
         return data.size();
     }
 
-    using Iterator = std::vector<bool>::iterator;
-    using ConstIterator = std::vector<bool>::const_iterator;
+    using Iterator = std::vector<int>::iterator;
+    using ConstIterator = std::vector<int>::const_iterator;
 
     Iterator begin() {
         return data.begin();
@@ -110,7 +116,12 @@ struct Instance {
     }
 
     // Streaming support
-    friend std::ostream& operator<<(std::ostream& os, const Instance& instance);
+    friend std::ostream& operator<<(std::ostream& os, const Instance& instance) {
+        for (auto bit : instance) {
+            os << bit;
+        }
+        return os;
+    }
 };
 
 }  // namespace Minisat

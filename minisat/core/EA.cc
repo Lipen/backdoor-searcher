@@ -6,28 +6,40 @@
 
 namespace Minisat {
 
-EvolutionaryAlgorithm::EvolutionaryAlgorithm(Solver& solver, int seed)
-    : solver(solver) {
+EvolutionaryAlgorithm::EvolutionaryAlgorithm(Solver& solver, int seed) : solver(solver) {
     if (seed != -1) {
         gen.seed(seed);
     }
 }
 
 // Run the evolutionary algorithm
-Instance EvolutionaryAlgorithm::run(int numIterations, int seed) {
+Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int seed) {
     if (seed != -1) {
         gen.seed(seed);
     }
 
     std::cout << "Running EA for " << numIterations << " iterations..." << '\n';
 
+    std::cout << "instance size: " << instanceSize << '\n';
     std::cout << "solver variables: " << solver.nVars() << '\n';
     std::cout << "unused variables: " << unusedVariables.size() << '\n';
 
+    std::vector<int> pool;
+    for (int i = 0; i < solver.nVars(); ++i) {
+        if (unusedVariables.find(i) == unusedVariables.end()) {
+            // Note: variables are 0-based
+            pool.push_back(i);
+        }
+    }
+    std::cout << "pool size: " << pool.size() << '\n';
+    if (pool.empty()) {
+        std::cout << "Pool of variables is empty, cannot continue!" << std::endl;
+        return Instance(instanceSize);
+    }
+
     std::cout << '\n';
 
-    int numVariables = solver.nVars();
-    Instance instance = initialize(numVariables);
+    Instance instance = initialize(instanceSize);
     double fit = calculateFitness(instance);
     // std::cout << "Initial instance: " << instance << '\n';
     std::vector<int> vars = instance.getVariables();
@@ -47,31 +59,11 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int seed) {
         // std::cout << "\n=== Iteration #" << i << '\n';
 
         Instance mutatedInstance = instance;  // copy
-        mutate(mutatedInstance);
-        while (1) {
-            double _ignore;
-            if (is_cached(mutatedInstance, _ignore)) {
-                // std::cout << "in cache, mutating again..." << '\n';
-                // mutatedInstance = instance;
-                mutate(mutatedInstance);
-                continue;
-            }
-
-            std::vector<int> vars = mutatedInstance.getVariables();
-            if (vars.empty()) {
-                // std::cout << "empty, mutating again..." << '\n';
-                // mutatedInstance = instance;
-                mutate(mutatedInstance);
-                continue;
-            }
-            // if (vars.size() > 24) {
-            //     // std::cout << "too much vars(" << vars.size() << "), mutating again..." << '\n';
-            //     // mutatedInstance = instance;
-            //     mutate(mutatedInstance);
-            //     continue;
-            // }
-
-            break;
+        mutate(mutatedInstance, pool);
+        double _ignore;
+        while (is_cached(mutatedInstance, _ignore)) {
+            // std::cout << "in cache, mutating again..." << '\n';
+            mutate(mutatedInstance, pool);
         }
         // std::cout << "Mutated instance: " << mutatedInstance << '\n';
         std::vector<int> mutatedVars = mutatedInstance.getVariables();
@@ -87,7 +79,9 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int seed) {
         // std::cout << "Mutated fitness: " << mutatedFitness << '\n';
         auto endTime = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-        std::cout << "[" << i << "/" << numIterations << "] Calculated fitness (" << mutatedFitness << ") for " << mutatedInstance.numVariables() << " variables in " << duration.count() << " milliseconds" << '\n';
+        if (i < 10 || i % 1000 == 0 || true) {
+            std::cout << "[" << i << "/" << numIterations << "] Calculated fitness (" << mutatedFitness << ") for " << mutatedInstance.numVariables() << " variables in " << duration.count() << " milliseconds" << '\n';
+        }
 
         // Update the best
         if (mutatedFitness < bestFitness) {
@@ -122,10 +116,8 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int seed) {
 }
 
 // Create an initial individual
-Instance EvolutionaryAlgorithm::initialize(int numVariables) {
-    std::vector<bool> data(numVariables);  // initially filled with `false`
-    // TODO: fill random if necessary
-    Instance instance(data);
+Instance EvolutionaryAlgorithm::initialize(int instanceSize) {
+    Instance instance(instanceSize);
     return instance;
 }
 
@@ -149,34 +141,29 @@ double EvolutionaryAlgorithm::calculateFitness(Instance& instance) {
 }
 
 // Mutate the individual by flipping bits
-void EvolutionaryAlgorithm::mutate(Instance& instance) {
-    std::uniform_real_distribution<double> dis(0.0, 1.0);
+void EvolutionaryAlgorithm::mutate(Instance& instance, std::vector<int>& pool) {
+    assert(!pool.empty());
 
-    // Track the set size
-    int counter = instance.numVariables();
+    std::uniform_real_distribution<double> dis(0.0, 1.0);
+    std::uniform_int_distribution<size_t> dis_index(0, pool.size() - 1);
 
     for (size_t i = 0; i < instance.size(); ++i) {
-        // Check if the variable is unused
-        if (unusedVariables.find(i) != unusedVariables.end()) {
-            assert(instance[i] == false);
-            continue;  // Skip unused variables
+        if (dis(gen) < (1.0 / (instance.size()))) {
+            size_t j = dis_index(gen);
+            std::swap(instance[i], pool[j]);
         }
+    }
 
-        // // Flip the bit with probability 1/n
-        // if (dis(gen) < (1.0 / solver.nVars())) {
-        //     instance[i] = ! instance[i];
-        // }
-
-        if (instance[i]) {
-            if (counter > 24) {
-                instance[i] = false;
-                counter--;
-            }
-        } else {
-            // Flip the bit with probability 1/n
-            if (dis(gen) < (1.0 / (instance.size() - unusedVariables.size() - counter))) {
-                instance[i] = true;
-                counter++;
+    while (instance.numVariables() < 16) {
+        // std::cout << "numVariables = " << instance.numVariables() << ", swapping..." << std::endl;
+        for (size_t i = 0; i < instance.size(); ++i) {
+            if (instance[i] == -1) {
+                auto it = std::find_if(pool.begin(), pool.end(), [](int value) {
+                    return value != -1;
+                });
+                size_t j = std::distance(pool.begin(), it);
+                std::swap(instance[i], pool[j]);
+                break;
             }
         }
     }

@@ -176,12 +176,13 @@ int main(int argc, char** argv) {
 #endif
 
         int numRuns = 1;
-        int numIterations = 100000;
+        int numIterations = 1000000;
         int seed = 42;
+        int instanceSize = 30;
         EvolutionaryAlgorithm ea(S, seed);
 
         // Run EA
-        Instance best = ea.run(numIterations);
+        Instance best = ea.run(numIterations, instanceSize);
 
         for (int i = 2; i <= numRuns; ++i) {
             // Extend `ea.unusedVariables` with `best.variables`
@@ -190,7 +191,7 @@ int main(int argc, char** argv) {
 
             // Another run of EA
             std::cout << "\n----------------------------------------\n\n";
-            best = ea.run(numIterations);
+            best = ea.run(numIterations, instanceSize);
         }
 
         //         if (!S.simplify()){
