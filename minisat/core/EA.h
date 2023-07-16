@@ -2,9 +2,9 @@
 #define EA_H
 
 #include <random>
+#include <set>
 #include <unordered_map>
 #include <vector>
-#include <set>
 
 #include "minisat/core/Instance.h"
 #include "minisat/core/Solver.h"
