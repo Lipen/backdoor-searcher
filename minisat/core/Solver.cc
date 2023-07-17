@@ -22,6 +22,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <math.h>
 
+#include <iostream>
+#include <vector>
+
 #include "minisat/mtl/Sort.h"
 
 using namespace Minisat;
@@ -1001,11 +1004,11 @@ bool Solver::gen_all_valid_assumptions_propcheck(
     int checked_points = 0;
 
     if (verb) {
-        printf("c checking backdoor: ");
+        std::cout << "c checking backdoor: ";
         for (int j = 0; j < d_set.size(); j++) {
-            printf("%i ", d_set[j] + 1);
+            std::cout << d_set[j] + 1 << ' ';
         }
-        printf("\n");
+        std::cout << '\n';
     }
 
     int d_size = d_set.size();
@@ -1034,6 +1037,13 @@ bool Solver::gen_all_valid_assumptions_propcheck(
         if (b == true) {
             vector_of_assumptions.push_back(aux);
             total_count++;
+                if (verb) {
+                    std::cout << "c valid vector of assumptions: ";
+                    for (int j = 0; j < aux.size(); j++) {
+                        std::cout << aux[j] << ' ';
+                    }
+                    std::cout << '\n';
+                }
         }
 
         int g = aux.size() - 1;
@@ -1060,12 +1070,12 @@ bool Solver::gen_all_valid_assumptions_propcheck(
     }
     cancelUntil(0);
     if (verb) {
-        printf("c Checked %i points, %lli valid\n", checked_points, total_count);
+        std::cout << "c Checked " << checked_points << " points, " << total_count << " valid" << '\n';
     }
     return true;
 }
 
-bool Solver::gen_all_valid_assumptions_rc2(
+bool Solver::gen_all_valid_assumptions_tree(
     std::vector<int> d_set,
     uint64_t& total_count,
     std::vector<std::vector<int>>& vector_of_assumptions,
@@ -1078,11 +1088,11 @@ bool Solver::gen_all_valid_assumptions_rc2(
     assert(d_set.size() < 64);
 
     if (verb) {
-        printf("c checking backdoor: ");
+        std::cout << "c checking backdoor: ";
         for (int j = 0; j < d_set.size(); j++) {
-            printf("%i ", d_set[j] + 1);
+            std::cout << d_set[j] + 1 << ' ';
         }
-        printf("\n");
+        std::cout << '\n';
     }
 
     int d_size = d_set.size();
@@ -1120,14 +1130,13 @@ bool Solver::gen_all_valid_assumptions_rc2(
             // on conflict we switch ascend to true and move to the next assumption
             ascend = true;
 
-            if (verb) {
-                printf("c conflict derived for assumptions: ");
-                for (int j = 0; j < decisionLevel(); j++) {
-                    printf("%i ",
-                           ((var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1)));
-                }
-                printf("\n");
-            }
+            // if (verb) {
+            //     std::cout<<"c conflict derived for assumptions: ";
+            //     for (int j = 0; j < decisionLevel(); j++) {
+            //         std::cout << (var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1) << ' ';
+            //     }
+            //     std::cout << '\n';
+            // }
 
         } else {
             if (decisionLevel() == d_size) {
@@ -1137,11 +1146,11 @@ bool Solver::gen_all_valid_assumptions_rc2(
                 }
 
                 if (verb) {
-                    printf("c valid vector of assumptions: ");
+                    std::cout << "c valid vector of assumptions: ";
                     for (int j = 0; j < decisionLevel(); j++) {
-                        printf("%i ", ((var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1)));
+                        std::cout << (var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1) << ' ';
                     }
-                    printf("\n");
+                    std::cout << '\n';
                 }
 
                 ascend = true;
@@ -1152,18 +1161,18 @@ bool Solver::gen_all_valid_assumptions_rc2(
                 if (value(p) == l_True) {
                     // Dummy decision level:
                     newDecisionLevel();
-                } else if (value(p) == l_False) {
-                    ascend = true;
+                // } else if (value(p) == l_False) {
+                //     ascend = true;
 
-                    if (verb) {
-                        printf("c propagated a different value for assumptions: ");
-                        for (int j = 0; j < decisionLevel(); j++) {
-                            printf("%i ", ((var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1)));
-                        }
-                        printf("\n");
-                    }
+                //     if (verb) {
+                //         std::cout << "c propagated a different value for assumptions: ";
+                //         for (int j = 0; j < decisionLevel(); j++) {
+                //             std::cout << (var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1) << ' ';
+                //         }
+                //         std::cout << '\n';
+                //     }
 
-                    break;
+                //     break;
                 } else {
                     newDecisionLevel();
                     uncheckedEnqueue(p, decisionLevel());
@@ -1174,14 +1183,14 @@ bool Solver::gen_all_valid_assumptions_rc2(
 
         if (ascend == true) {
             assert(decisionLevel() <= d_size + 1);
-            if (verb) {
-                printf("c decisionlevel %i\n", decisionLevel());
-                printf("c current aux value: ");
-                for (int j = 0; j < decisionLevel(); j++) {
-                    printf("%i ", aux[j]);
-                }
-                printf("\n");
-            }
+            // if (verb) {
+            //     printf("c decisionlevel %i\n", decisionLevel());
+            //     printf("c current aux value: ");
+            //     for (int j = 0; j < decisionLevel(); j++) {
+            //         printf("%i ", aux[j]);
+            //     }
+            //     printf("\n");
+            // }
             ascend = false;
             int g = decisionLevel() - 1;
             while (g >= 0) {
@@ -1209,13 +1218,13 @@ bool Solver::gen_all_valid_assumptions_rc2(
                 }
             }
 
-            if (verb) {
-                printf("c next aux value: ");
-                for (int j = 0; j < d_size; j++) {
-                    printf("%i ", aux[j]);
-                }
-                printf("\n");
-            }
+            // if (verb) {
+            //     printf("c next aux value: ");
+            //     for (int j = 0; j < d_size; j++) {
+            //         printf("%i ", aux[j]);
+            //     }
+            //     printf("\n");
+            // }
             // modify assumptions
             for (int j = g_s; j < d_size; j++) {
                 if (aux[j] == 0) {
@@ -1230,8 +1239,136 @@ bool Solver::gen_all_valid_assumptions_rc2(
 
     cancelUntil(0);
     if (verb) {
-        printf("c Total: %lli\n", total_count);
-        printf("c Really found: %lli\n", vector_of_assumptions.size());
+        std::cout << "c Total: " << total_count << '\n';
+        std::cout << "c Really found: " << vector_of_assumptions.size() << '\n';
+    }
+    assumptions.clear();
+    return true;
+}
+
+bool Solver::gen_all_valid_assumptions_tree_v2(
+    const std::vector<int>& variables,
+    uint64_t& totalCount,
+    std::vector<std::vector<int>>& vectorOfAssumptions,
+    int limit,
+    bool verbose) {
+    assert(variables.size() < 64);
+
+    if (verbose) {
+        std::cout << "Checking backdoor: ";
+        for (int variable : variables) {
+            std::cout << variable + 1 << " ";
+        }
+        std::cout << '\n';
+    }
+
+    assumptions.clear();
+    cancelUntil(0);
+
+    std::vector<int> aux(variables.size(), 0);
+    for (int i = 0; i < variables.size(); ++i) {
+        aux[i] = 0;
+        assumptions.push(~mkLit(variables[i]));
+    }
+
+    vectorOfAssumptions.clear();
+    totalCount = 0;
+
+    bool ascend = false;
+
+    if (variables.empty()) {
+        return true;
+    }
+
+    int currentPos = 0;
+    while (true) {
+        CRef conflict = propagate();
+
+        if (conflict != CRef_Undef) {
+            ascend = true;
+
+            if (verbose) {
+                std::cout << "Conflict derived for assumptions: ";
+                for (int i = 0; i < decisionLevel(); ++i) {
+                    std::cout << ((var(assumptions[i]) + 1) * (-2 * sign(assumptions[i]) + 1)) << " ";
+                }
+                std::cout << '\n';
+            }
+
+        } else {
+            if (decisionLevel() == variables.size()) {
+                if (vectorOfAssumptions.size() < limit) {
+                    vectorOfAssumptions.push_back(aux);
+                }
+
+                if (verbose) {
+                    std::cout << "Valid vector of assumptions: ";
+                    for (int i = 0; i < decisionLevel(); ++i) {
+                        std::cout << ((var(assumptions[i]) + 1) * (-2 * sign(assumptions[i]) + 1)) << " ";
+                    }
+                    std::cout << '\n';
+                }
+
+                ascend = true;
+                totalCount++;
+            }
+
+            while (decisionLevel() < variables.size()) {
+                Lit p = assumptions[decisionLevel()];
+                if (value(p) == l_True) {
+                    newDecisionLevel();
+                } else if (value(p) == l_False) {
+                    ascend = true;
+
+                    if (verbose) {
+                        std::cout << "Propagated a different value for assumptions: ";
+                        for (int i = 0; i < decisionLevel(); ++i) {
+                            std::cout << ((var(assumptions[i]) + 1) * (-2 * sign(assumptions[i]) + 1)) << " ";
+                        }
+                        std::cout << '\n';
+                    }
+
+                    break;
+                } else {
+                    newDecisionLevel();
+                    uncheckedEnqueue(p, decisionLevel());
+                    break;
+                }
+            }
+        }
+
+        if (ascend) {
+            assert(decisionLevel() <= variables.size() + 1);
+            if (verbose) {
+                std::cout << "Decision level " << decisionLevel() << '\n';
+                std::cout << "Current aux value: ";
+                for (int i = 0; i < decisionLevel(); ++i) {
+                    std::cout << aux[i] << " ";
+                }
+                std::cout << '\n';
+            }
+            ascend = false;
+            int g = decisionLevel() - 1;
+            while (g >= 0 && aux[g] == 1) {
+                --g;
+            }
+            if (g == -1) {
+                break;
+            }
+            int g_s = g;
+
+            aux[g] = 1;
+            for (int i = g_s; i < variables.size(); ++i) {
+                assumptions[i] = (aux[i] == 0) ? ~mkLit(variables[i]) : mkLit(variables[i]);
+            }
+            cancelUntil(g_s);
+        }
+    }
+
+    cancelUntil(0);
+    if (verbose) {
+        std::cout << "Total: " << totalCount << '\n';
+        std::cout << "Really found: " << vectorOfAssumptions.size() << '\n';
     }
     assumptions.clear();
     return true;
