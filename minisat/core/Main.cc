@@ -175,8 +175,8 @@ int main(int argc, char** argv) {
         signal(SIGXCPU, SIGINT_interrupt);
 #endif
 
-        int numRuns = 1;
-        int numIterations = 1000000;
+        int numRuns = 100;
+        int numIterations = 10000;
         int seed = 42;
         int instanceSize = 20;
         EvolutionaryAlgorithm ea(S, seed);

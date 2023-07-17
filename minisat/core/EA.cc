@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <random>
+#include <vector>
 
 namespace Minisat {
 
@@ -32,13 +34,13 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
         std::cout << "Pool of variables is empty, cannot run!" << std::endl;
         return instance;
     }
-    double fit = calculateFitness(instance);
+    Fitness fit = calculateFitness(instance);
     std::cout << "Initial instance: " << instance << std::endl;
-    std::cout << "Initial fitness: " << fit << std::endl;
+    std::cout << "Initial fitness: " << fit.fitness << " (rho=" << fit.rho << ")" << std::endl;
 
     int bestIteration = 0;
     Instance best = instance;
-    double bestFitness = fit;
+    Fitness bestFitness = fit;
 
     for (int i = 1; i <= numIterations; ++i) {
         // if (i <= 10 || i % 100 == 0) {
@@ -47,7 +49,7 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
 
         Instance mutatedInstance = instance;  // copy
         mutate(mutatedInstance);
-        double _ignore;
+        Fitness _ignore;
         while (is_cached(mutatedInstance, _ignore)) {
             // std::cout << "in cache, mutating again..." << std::endl;
             mutate(mutatedInstance);
@@ -62,12 +64,12 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
         // std::cout << "]" << std::endl;
 
         auto startTime = std::chrono::high_resolution_clock::now();
-        double mutatedFitness = calculateFitness(mutatedInstance);
+        Fitness mutatedFitness = calculateFitness(mutatedInstance);
         // std::cout << "Mutated fitness: " << mutatedFitness << std::endl;
         auto endTime = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-        if (i <= 10 || i % 1000 == 0) {
-            std::cout << "[" << i << "/" << numIterations << "] Fitness " << mutatedFitness << " for " << mutatedInstance.numVariables() << " vars " << mutatedInstance << " in " << duration.count() << " ms" << std::endl;
+        if (i <= 10 || (i < 1000 && i % 100 == 0) || i % 1000 == 0) {
+            std::cout << "[" << i << "/" << numIterations << "] Fitness " << mutatedFitness.fitness << " (rho=" << mutatedFitness.rho << ") for " << mutatedInstance.numVariables() << " vars " << mutatedInstance << " in " << duration.count() << " ms" << std::endl;
         }
 
         // Update the best
@@ -93,7 +95,8 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
     // std::cout << "Best fitness: " << bestFitness << std::endl;
     // std::cout << "Best instance: " << best << std::endl;
     std::vector<int> bestVars = best.getVariables();
-    std::cout << "Best fitness " << bestFitness << " on iteration " << bestIteration << " with variables (total " << bestVars.size() << "): [";
+    std::cout << "Best fitness " << bestFitness.fitness << " (rho=" << bestFitness.rho << ")"
+              << " on iteration " << bestIteration << " with variables (total " << bestVars.size() << "): [";
     for (size_t i = 0; i < bestVars.size(); ++i) {
         if (i > 0) std::cout << ", ";
         std::cout << bestVars[i];
@@ -116,8 +119,8 @@ Instance EvolutionaryAlgorithm::initialize(int instanceSize) {
 }
 
 // Calculate the fitness value of the individual
-double EvolutionaryAlgorithm::calculateFitness(Instance& instance) {
-    double fitness;
+Fitness EvolutionaryAlgorithm::calculateFitness(Instance& instance) {
+    Fitness fitness;
     if (!is_cached(instance, fitness)) {
         // Delegate to instance for computing the fitness:
         fitness = instance.calculateFitness(solver);
@@ -129,7 +132,7 @@ double EvolutionaryAlgorithm::calculateFitness(Instance& instance) {
     }
 
     // Update instance's local cache:
-    instance._cached_fitness = fitness;
+    instance._cached_fitness = std::make_optional(fitness);
 
     return fitness;
 }
@@ -161,7 +164,7 @@ void EvolutionaryAlgorithm::mutate(Instance& instance) {
     }
 }
 
-bool EvolutionaryAlgorithm::is_cached(Instance& instance, double& fitness) {
+bool EvolutionaryAlgorithm::is_cached(Instance& instance, Fitness& fitness) {
     auto it = cache.find(instance.getBitmask(solver.nVars()));
     if (it != cache.end()) {
         fitness = it->second;

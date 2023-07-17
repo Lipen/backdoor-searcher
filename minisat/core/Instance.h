@@ -3,9 +3,11 @@
 
 #include <algorithm>
 #include <iostream>
+#include <optional>
 #include <ostream>
 #include <vector>
 
+#include "minisat/core/Fitness.h"
 #include "minisat/core/Solver.h"
 
 namespace Minisat {
@@ -13,10 +15,9 @@ namespace Minisat {
 struct Instance {
     std::vector<int> data;
     std::vector<int> pool;
-    double _cached_fitness = -1;
+    std::optional<Fitness> _cached_fitness;
 
     Instance(int size, std::vector<int> pool) : data(size, -1), pool(std::move(pool)) {}
-    ~Instance() {}
 
     // Copy constructor
     Instance(const Instance& other) : data(other.data), pool(other.pool) {}
@@ -27,7 +28,7 @@ struct Instance {
         if (this != &other) {
             data = other.data;  // copy
             pool = other.pool;  // copy
-            _cached_fitness = -1;
+            _cached_fitness = std::nullopt;
         }
         return *this;
     }
@@ -51,7 +52,7 @@ struct Instance {
                 variables.push_back(var);
             }
         }
-            std::sort(variables.begin(), variables.end());
+        std::sort(variables.begin(), variables.end());
         return variables;
     }
 
@@ -65,10 +66,10 @@ struct Instance {
         return bits;
     }
 
-    double calculateFitness(Solver& solver) {
-        if (_cached_fitness != -1) {
+    Fitness calculateFitness(Solver& solver) {
+        if (_cached_fitness.has_value()) {
             // std::cout << "cached fitness: " << _cached_fitness << std::endl;
-            return _cached_fitness;
+            return _cached_fitness.value();
         } else {
             // std::cout << "computing fitness" << std::endl;
 
@@ -76,8 +77,9 @@ struct Instance {
             // std::cout << "variables: " << vars.size() << std::endl;
 
             if (vars.empty()) {
-                return std::numeric_limits<double>::max();
-                // return std::log2(magic);
+                double rho = 0.0;
+                double fitness = std::numeric_limits<double>::max();
+                return Fitness{fitness, rho};
             }
 
             if (0) {
@@ -112,8 +114,8 @@ struct Instance {
             solver.gen_all_valid_assumptions_tree(vars, total_count, cubes, 0, verb);
             // solver.gen_all_valid_assumptions_tree_v2(vars, total_count, cubes, 0, verb);
 
-            // double omega = 20;
-            // double magic = std::pow(2.0, omega);
+            double omega = 20;
+            double magic = std::pow(2.0, omega);
             double normalizedSize = static_cast<double>(vars.size()) / static_cast<double>(pool.size());
             int numValuations = 1 << vars.size();  // 2^|B|
             // `rho` is the proportion of "easy" tasks:
@@ -123,10 +125,27 @@ struct Instance {
 
             //! fitness = log2( rho * 2^size + (1-rho) * 2^const )
             // double fitness = std::log2(rho * numValuations + (1 - rho) * magic);
+            // fitness = rho*2^size + 2^omega - rho*2^omega
+            // fitness = rho*2^size - rho*2^omega
+            // fitness = rho*(2^size - 2^omega)
 
-            double fitness = std::log2( (1-rho) * normalizedSize );
+            // reversed, bad
+            // double fitness = std::log2((1 - rho) * numValuations + rho * magic);
 
-            return fitness;
+            // better, redundant
+            // double fitness = std::log2((1 - rho) * numValuations + (1-rho) * magic);
+            // fitness = (1-rho)*(2^size + 2^omega)
+
+            // good?
+            // double fitness = std::log2((1 - rho) * numValuations);
+
+            // normalized, good?
+            // double fitness = std::log2((1 - rho) * normalizedSize);
+
+            // just multiply
+            double fitness = std::log2(1 + (1 - rho) * vars.size());
+
+            return Fitness{fitness, rho};
         }
     }
 

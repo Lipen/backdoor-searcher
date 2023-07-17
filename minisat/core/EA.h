@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "minisat/core/Fitness.h"
 #include "minisat/core/Instance.h"
 #include "minisat/core/Solver.h"
 
@@ -23,13 +24,13 @@ class EvolutionaryAlgorithm {
    private:
     std::mt19937 gen;
     Solver& solver;
-    std::unordered_map<std::vector<bool>, double> cache;
+    std::unordered_map<std::vector<bool>, Fitness> cache;
 
     Instance initialize(int numVariables);
-    double calculateFitness(Instance& individual);
+    Fitness calculateFitness(Instance& individual);
     void mutate(Instance& mutatedIndividual);
 
-    bool is_cached(Instance& instance, double& fitness);
+    bool is_cached(Instance& instance, Fitness& fitness);
 };
 
 }  // namespace Minisat

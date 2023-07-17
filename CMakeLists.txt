@@ -42,6 +42,7 @@ add_library(libminisat STATIC
     minisat/core/ThrowOOMException.h
     minisat/core/EA.h
     minisat/core/Instance.h
+    minisat/core/Fitness.h
     minisat/mtl/Alg.h
     minisat/mtl/Alloc.h
     minisat/mtl/Heap.h
