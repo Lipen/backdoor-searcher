@@ -991,6 +991,80 @@ bool Solver::prop_check(const vec<Lit>& assumps, vec<Lit>& prop, int psaving) {
     return st && confl == CRef_Undef;
 }
 
+bool Solver::gen_all_valid_assumptions_propcheck(
+    std::vector<int> d_set,
+    uint64_t& total_count,
+    std::vector<std::vector<int>>& vector_of_assumptions,
+    bool verb) {
+    vector_of_assumptions.clear();
+    total_count = 0;
+    int checked_points = 0;
+
+    if (verb) {
+        printf("c checking backdoor: ");
+        for (int j = 0; j < d_set.size(); j++) {
+            printf("%i ", d_set[j] + 1);
+        }
+        printf("\n");
+    }
+
+    int d_size = d_set.size();
+
+    vec<Lit> assumps;
+    std::vector<int> aux(d_set.size());
+    for (int i = 0; i < d_set.size(); i++) {
+        aux[i] = 0;
+        assumps.push(~mkLit(d_set[i]));
+    }
+
+    bool flag = true;
+    while (flag == true) {
+        checked_points++;
+        for (int j = 0; j < d_size; j++) {
+            if (aux[j] == 0) {
+                assumps[j] = ~mkLit(d_set[j]);
+            } else {
+                assumps[j] = mkLit(d_set[j]);
+            }
+        }
+
+        vec<Lit> prop;
+        bool b = prop_check(assumps, prop, 0);
+        cancelUntil(0);
+        if (b == true) {
+            vector_of_assumptions.push_back(aux);
+            total_count++;
+        }
+
+        int g = aux.size() - 1;
+
+        while ((aux[g] == 1) && (g >= 0)) {
+            g--;
+        }
+        if (g == -1) {
+            // time to break;
+            flag = false;
+            break;
+        }
+
+        assert(aux[g] == 0);
+        aux[g] = 1;
+        // move to the next binary number
+        if (g < d_size) {
+            g++;
+            while (g < d_size) {
+                aux[g] = 0;
+                g++;
+            }
+        }
+    }
+    cancelUntil(0);
+    if (verb) {
+        printf("c Checked %i points, %lli valid\n", checked_points, total_count);
+    }
+    return true;
+}
+
 bool Solver::gen_all_valid_assumptions_rc2(
     std::vector<int> d_set,
     uint64_t& total_count,
@@ -1160,79 +1234,5 @@ bool Solver::gen_all_valid_assumptions_rc2(
         printf("c Really found: %lli\n", vector_of_assumptions.size());
     }
     assumptions.clear();
-    return true;
-}
-
-bool Solver::gen_all_valid_assumptions_propcheck(
-    std::vector<int> d_set,
-    uint64_t& total_count,
-    std::vector<std::vector<int>>& vector_of_assumptions,
-    bool verb) {
-    vector_of_assumptions.clear();
-    total_count = 0;
-    int checked_points = 0;
-
-    if (verb) {
-        printf("c checking backdoor: ");
-        for (int j = 0; j < d_set.size(); j++) {
-            printf("%i ", d_set[j] + 1);
-        }
-        printf("\n");
-    }
-
-    int d_size = d_set.size();
-
-    vec<Lit> assumps;
-    std::vector<int> aux(d_set.size());
-    for (int i = 0; i < d_set.size(); i++) {
-        aux[i] = 0;
-        assumps.push(~mkLit(d_set[i]));
-    }
-
-    bool flag = true;
-    while (flag == true) {
-        checked_points++;
-        for (int j = 0; j < d_size; j++) {
-            if (aux[j] == 0) {
-                assumps[j] = ~mkLit(d_set[j]);
-            } else {
-                assumps[j] = mkLit(d_set[j]);
-            }
-        }
-
-        vec<Lit> prop;
-        bool b = prop_check(assumps, prop, 0);
-        cancelUntil(0);
-        if (b == true) {
-            vector_of_assumptions.push_back(aux);
-            total_count++;
-        }
-
-        int g = aux.size() - 1;
-
-        while ((aux[g] == 1) && (g >= 0)) {
-            g--;
-        }
-        if (g == -1) {
-            // time to break;
-            flag = false;
-            break;
-        }
-
-        assert(aux[g] == 0);
-        aux[g] = 1;
-        // move to the next binary number
-        if (g < d_size) {
-            g++;
-            while (g < d_size) {
-                aux[g] = 0;
-                g++;
-            }
-        }
-    }
-    cancelUntil(0);
-    if (verb) {
-        printf("c Checked %i points, %lli valid\n", checked_points, total_count);
-    }
     return true;
 }
