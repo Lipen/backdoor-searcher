@@ -1037,13 +1037,13 @@ bool Solver::gen_all_valid_assumptions_propcheck(
         if (b == true) {
             vector_of_assumptions.push_back(aux);
             total_count++;
-                if (verb) {
-                    std::cout << "c valid vector of assumptions: ";
-                    for (int j = 0; j < aux.size(); j++) {
-                        std::cout << aux[j] << ' ';
-                    }
-                    std::cout << '\n';
+            if (verb) {
+                std::cout << "c valid vector of assumptions: ";
+                for (int j = 0; j < aux.size(); j++) {
+                    std::cout << aux[j] << ' ';
                 }
+                std::cout << '\n';
+            }
         }
 
         int g = aux.size() - 1;
@@ -1158,23 +1158,22 @@ bool Solver::gen_all_valid_assumptions_tree(
             }
             while (decisionLevel() < d_size) {
                 Lit p = assumptions[decisionLevel()];
+                newDecisionLevel();
                 if (value(p) == l_True) {
                     // Dummy decision level:
-                    newDecisionLevel();
-                // } else if (value(p) == l_False) {
-                //     ascend = true;
+                    // Nope!
+                } else if (value(p) == l_False) {
+                    ascend = true;
 
-                //     if (verb) {
-                //         std::cout << "c propagated a different value for assumptions: ";
-                //         for (int j = 0; j < decisionLevel(); j++) {
-                //             std::cout << (var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1) << ' ';
-                //         }
-                //         std::cout << '\n';
-                //     }
-
-                //     break;
+                    if (verb) {
+                        std::cout << "c propagated a different value for assumptions: ";
+                        for (int j = 0; j < decisionLevel(); j++) {
+                            std::cout << aux[j] << ' ';
+                        }
+                        std::cout << '\n';
+                    }
+                    break;
                 } else {
-                    newDecisionLevel();
                     uncheckedEnqueue(p, decisionLevel());
                     break;
                 }

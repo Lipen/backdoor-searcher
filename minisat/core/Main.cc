@@ -178,7 +178,7 @@ int main(int argc, char** argv) {
         int numRuns = 100;
         int numIterations = 10000;
         int seed = 42;
-        int instanceSize = 20;
+        int instanceSize = 24;
         EvolutionaryAlgorithm ea(S, seed);
 
         // Run EA

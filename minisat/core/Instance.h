@@ -136,14 +136,15 @@ struct Instance {
             // double fitness = std::log2((1 - rho) * numValuations + (1-rho) * magic);
             // fitness = (1-rho)*(2^size + 2^omega)
 
-            // good?
+            // num hard only
             // double fitness = std::log2((1 - rho) * numValuations);
 
-            // normalized, good?
+            // normalized
             // double fitness = std::log2((1 - rho) * normalizedSize);
 
-            // just multiply
+            // multiply
             double fitness = std::log2(1 + (1 - rho) * vars.size());
+            // double fitness = std::log2(1 + (1 - rho) * vars.size() * vars.size());
 
             return Fitness{fitness, rho};
         }
