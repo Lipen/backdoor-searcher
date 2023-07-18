@@ -102,6 +102,10 @@ int main(int argc, char** argv) {
         IntOption verb("MAIN", "verb", "Verbosity level (0=silent, 1=some, 2=more).", 1, IntRange(0, 2));
         IntOption cpu_lim("MAIN", "cpu-lim", "Limit on CPU time allowed in seconds.\n", INT32_MAX, IntRange(0, INT32_MAX));
         IntOption mem_lim("MAIN", "mem-lim", "Limit on memory usage in megabytes.\n", INT32_MAX, IntRange(0, INT32_MAX));
+        IntOption ea_seed("EA", "ea-seed", "Seed for EA.\n", 42, IntRange(0, INT32_MAX));
+        IntOption ea_num_runs("EA", "ea-num-runs", "Number of EA runs.\n", 5, IntRange(0, INT32_MAX));
+        IntOption ea_num_iterations("EA", "ea-num-iters", "Number of EA iterations in each run.\n", 10000, IntRange(0, INT32_MAX));
+        IntOption ea_instance_size("EA", "ea-instance-size", "Instance size in EA.\n", 20, IntRange(1, INT32_MAX));
 
         parseOptions(argc, argv, true);
 
@@ -175,23 +179,19 @@ int main(int argc, char** argv) {
         signal(SIGXCPU, SIGINT_interrupt);
 #endif
 
-        int numRuns = 100;
-        int numIterations = 10000;
-        int seed = 42;
-        int instanceSize = 24;
-        EvolutionaryAlgorithm ea(S, seed);
+        EvolutionaryAlgorithm ea(S, ea_seed);
 
         // Run EA
-        Instance best = ea.run(numIterations, instanceSize);
+        Instance best = ea.run(ea_num_iterations, ea_instance_size);
 
-        for (int i = 2; i <= numRuns; ++i) {
+        for (int i = 2; i <= ea_num_runs; ++i) {
             // Extend `ea.unusedVariables` with `best.variables`
             std::vector<int> vars = best.getVariables();
             ea.unusedVariables.insert(vars.begin(), vars.end());
 
             // Another run of EA
             std::cout << "\n----------------------------------------\n\n";
-            best = ea.run(numIterations, instanceSize);
+            best = ea.run(ea_num_iterations, ea_instance_size);
         }
 
         //         if (!S.simplify()){

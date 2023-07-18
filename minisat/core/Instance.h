@@ -128,11 +128,8 @@ struct Instance {
             // fitness = rho*2^size - rho*2^omega
             // fitness = rho*(2^size - 2^omega)
 
-            // reversed, bad
-            // double fitness = std::log2((1 - rho) * numValuations + rho * magic);
-
-            // better, redundant
-            // double fitness = std::log2((1 - rho) * numValuations + (1-rho) * magic);
+            // fixed
+            // double fitness = std::log2((1 - rho) * numValuations + (1 - rho) * magic);
             // fitness = (1-rho)*(2^size + 2^omega)
 
             // num hard only
@@ -143,6 +140,8 @@ struct Instance {
 
             // multiply
             double fitness = std::log2(1 + (1 - rho) * vars.size());
+
+            // mutliply, square
             // double fitness = std::log2(1 + (1 - rho) * vars.size() * vars.size());
 
             return Fitness{fitness, rho};
