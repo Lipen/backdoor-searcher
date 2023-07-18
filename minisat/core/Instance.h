@@ -112,7 +112,6 @@ struct Instance {
             bool verb = false;
             // solver.gen_all_valid_assumptions_propcheck(vars, total_count, cubes, verb);
             solver.gen_all_valid_assumptions_tree(vars, total_count, cubes, 0, verb);
-            // solver.gen_all_valid_assumptions_tree_v2(vars, total_count, cubes, 0, verb);
 
             double omega = 20;
             double magic = std::pow(2.0, omega);

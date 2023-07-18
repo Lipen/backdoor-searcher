@@ -275,8 +275,6 @@ protected:
 public:
     bool gen_all_valid_assumptions_propcheck(std::vector<int> d_set, uint64_t& total_count, std::vector<std::vector<int>>& vector_of_assumptions, bool verb=false);
     bool gen_all_valid_assumptions_tree(std::vector<int> d_set, uint64_t& total_count, std::vector<std::vector<int>>& vector_of_assumptions, int limit, bool verb=false);
-    bool gen_all_valid_assumptions_tree_v2(const std::vector<int>& variables, uint64_t& totalCount, std::vector<std::vector<int>>& vectorOfAssumptions, int limit, bool verbose=false);
-
 };
 
 
