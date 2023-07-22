@@ -138,11 +138,17 @@ struct Instance {
             // normalized
             // double fitness = std::log2((1 - rho) * normalizedSize);
 
-            // multiply
-            double fitness = std::log2(1 + (1 - rho) * vars.size());
+            // multiply (1-rho) and size
+            // double fitness = std::log2(1 + (1 - rho) * vars.size());
 
             // mutliply, square
             // double fitness = std::log2(1 + (1 - rho) * vars.size() * vars.size());
+
+            // multiply (1-rho) and number of hard tasks
+            // double fitness = std::log2(1 + (1 - rho) * static_cast<double>(total_count));
+
+            // double fitness = std::log2(1 + (1 - rho));
+            double fitness = (1 - rho);
 
             return Fitness{fitness, rho};
         }

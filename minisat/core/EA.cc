@@ -49,11 +49,11 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
 
         Instance mutatedInstance = instance;  // copy
         mutate(mutatedInstance);
-        Fitness _ignore;
-        while (is_cached(mutatedInstance, _ignore)) {
-            // std::cout << "in cache, mutating again..." << std::endl;
-            mutate(mutatedInstance);
-        }
+        // Fitness _ignore;
+        // while (is_cached(mutatedInstance, _ignore)) {
+        //     // std::cout << "in cache, mutating again..." << std::endl;
+        //     mutate(mutatedInstance);
+        // }
         // std::cout << "Mutated instance: " << mutatedInstance << std::endl;
         // std::vector<int> mutatedVars = mutatedInstance.getVariables();
         // std::cout << "Mutated variables (total " << mutatedVars.size() << "): [";
@@ -68,7 +68,7 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
         // std::cout << "Mutated fitness: " << mutatedFitness << std::endl;
         auto endTime = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
-        if (i <= 10 || (i < 1000 && i % 100 == 0) || i % 1000 == 0) {
+        if (i <= 10 || (i < 1000 && i % 100 == 0) || (i < 10000 && i % 1000 == 0) || (i % 10000 == 0)) {
             std::cout << "[" << i << "/" << numIterations << "] Fitness " << mutatedFitness.fitness << " (rho=" << mutatedFitness.rho << ") for " << mutatedInstance.numVariables() << " vars " << mutatedInstance << " in " << duration.count() << " ms" << std::endl;
         }
 
@@ -88,6 +88,11 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
         // (1,1) strategy: replace 'current' instance with mutated in any case
         // instance = mutatedInstance;
         // fit = mutatedFitness;
+
+        // if (fit.rho >= 0.999) {
+        //     std::cout << "Found rho >= 0.999 on iteration " << i << std::endl;
+        //     break;
+        // }
     }
 
     // std::cout << std::endl;
@@ -96,7 +101,7 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
     // std::cout << "Best instance: " << best << std::endl;
     std::vector<int> bestVars = best.getVariables();
     std::cout << "Best fitness " << bestFitness.fitness << " (rho=" << bestFitness.rho << ")"
-              << " on iteration " << bestIteration << " with variables (total " << bestVars.size() << "): [";
+              << " on iteration " << bestIteration << " with " << bestVars.size() << " variables: [";
     for (size_t i = 0; i < bestVars.size(); ++i) {
         if (i > 0) std::cout << ", ";
         std::cout << bestVars[i];
@@ -149,19 +154,19 @@ void EvolutionaryAlgorithm::mutate(Instance& instance) {
         }
     }
 
-    while (instance.numVariables() < 10) {
-        // std::cout << "numVariables = " << instance.numVariables() << ", swapping..." << std::endl;
-        for (size_t i = 0; i < instance.size(); ++i) {
-            if (instance[i] == -1) {
-                auto it = std::find_if(instance.pool.begin(), instance.pool.end(), [](int value) {
-                    return value != -1;
-                });
-                size_t j = std::distance(instance.pool.begin(), it);
-                std::swap(instance[i], instance.pool[j]);
-                break;
-            }
-        }
-    }
+    // while (instance.numVariables() < 16) {
+    //     // std::cout << "numVariables = " << instance.numVariables() << ", swapping..." << std::endl;
+    //     for (size_t i = 0; i < instance.size(); ++i) {
+    //         if (instance[i] == -1) {
+    //             auto it = std::find_if(instance.pool.begin(), instance.pool.end(), [](int value) {
+    //                 return value != -1;
+    //             });
+    //             size_t j = std::distance(instance.pool.begin(), it);
+    //             std::swap(instance[i], instance.pool[j]);
+    //             break;
+    //         }
+    //     }
+    // }
 }
 
 bool EvolutionaryAlgorithm::is_cached(Instance& instance, Fitness& fitness) {

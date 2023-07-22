@@ -23,6 +23,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <iostream>
 #include <vector>
+#include <chrono>
 
 #include "minisat/core/Dimacs.h"
 #include "minisat/core/EA.h"
@@ -179,6 +180,8 @@ int main(int argc, char** argv) {
         signal(SIGXCPU, SIGINT_interrupt);
 #endif
 
+        auto startTime = std::chrono::high_resolution_clock::now();
+
         EvolutionaryAlgorithm ea(S, ea_seed);
 
         // Run EA
@@ -193,6 +196,11 @@ int main(int argc, char** argv) {
             std::cout << "\n----------------------------------------\n\n";
             best = ea.run(ea_num_iterations, ea_instance_size);
         }
+
+        auto endTime = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+        std::cout << '\n';
+        std::cout << "Done " << ea_num_runs << " EA runs in " << duration.count() / 1000.0 << " s" << std::endl;
 
         //         if (!S.simplify()){
         //             if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
