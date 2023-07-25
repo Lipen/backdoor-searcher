@@ -82,7 +82,8 @@ struct Instance {
             if (vars.empty()) {
                 double rho = 0.0;
                 double fitness = std::numeric_limits<double>::max();
-                return Fitness{fitness, rho};
+                uint64_t hard = 1 << vars.size();
+                return Fitness{fitness, rho, hard};
             }
 
             if (0) {
@@ -110,8 +111,8 @@ struct Instance {
                 }
             }
 
-            std::vector<std::vector<int>> cubes;
-            uint64_t total_count;
+            std::vector<std::vector<int>> cubes; // hard tasks
+            uint64_t total_count; // number of hard tasks
             bool verb = false;
             // solver.gen_all_valid_assumptions_propcheck(vars, total_count, cubes, verb);
             solver.gen_all_valid_assumptions_tree(vars, total_count, cubes, 0, verb);
@@ -153,7 +154,7 @@ struct Instance {
             // double fitness = std::log2(1 + (1 - rho));
             double fitness = (1 - rho);
 
-            return Fitness{fitness, rho};
+            return Fitness{fitness, rho, total_count};
         }
     }
 

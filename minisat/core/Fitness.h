@@ -6,6 +6,7 @@ namespace Minisat {
 struct Fitness {
     double fitness;
     double rho;
+    uint64_t hard;
 
     bool operator<(const Fitness& other) const {
         return fitness < other.fitness;

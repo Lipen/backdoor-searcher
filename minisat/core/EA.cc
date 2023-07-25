@@ -78,8 +78,9 @@ Instance EvolutionaryAlgorithm::run(
         if (i <= 10 || (i < 1000 && i % 100 == 0) || (i < 10000 && i % 1000 == 0) || (i % 10000 == 0)) {
             std::cout << "[" << i << "/" << numIterations << "] "
                       << "Fitness " << mutatedFitness.fitness
-                      << " (rho=" << mutatedFitness.rho << ")"
-                      << " for " << mutatedInstance.numVariables() << " vars "
+                      << " (rho=" << mutatedFitness.rho
+                      << ", hard=" << mutatedFitness.hard
+                      << ") for " << mutatedInstance.numVariables() << " vars "
                       << mutatedInstance << " in " << duration.count() << " ms"
                       << std::endl;
         }
@@ -112,34 +113,66 @@ Instance EvolutionaryAlgorithm::run(
     // std::cout << "Best fitness: " << bestFitness << std::endl;
     // std::cout << "Best instance: " << best << std::endl;
     std::vector<int> bestVars = best.getVariables();
-    std::cout << "Best fitness " << bestFitness.fitness << " (rho=" << bestFitness.rho << ")"
-              << " on iteration " << bestIteration << " with " << bestVars.size() << " variables: [";
+    std::cout << "Best fitness " << bestFitness.fitness
+              << " (rho=" << bestFitness.rho
+              << ", hard=" << bestFitness.hard
+              << ") on iteration " << bestIteration << " with " << bestVars.size() << " variables: [";
     for (size_t i = 0; i < bestVars.size(); ++i) {
         if (i > 0) std::cout << ", ";
         std::cout << bestVars[i];
     }
     std::cout << "]" << std::endl;
+    if (bestFitness.hard <= 16) {
+        std::vector<std::vector<int>> cubes;
+        uint64_t total_count;
+        bool verb = false;
+        // solver.gen_all_valid_assumptions_propcheck(vars, total_count, cubes, verb);
+        solver.gen_all_valid_assumptions_tree(bestVars, total_count, cubes, (int) bestFitness.hard, verb);
+        if (total_count != bestFitness.hard) {
+            std::cout << "Mismatch: total_count=" << total_count << ", numHardTasks=" << bestFitness.hard << std::endl;
+        }
+        if (cubes.size() != bestFitness.hard) {
+            std::cout << "Mismatch: cubes.size()=" << cubes.size() << ", numHardTasks=" << bestFitness.hard
+                      << std::endl;
+        }
+        // std::cout << "Hard tasks: " << bestFitness.hard << std::endl;
+        // for (auto&& cube : cubes) {
+        //     std::cout << "[";
+        //     for (size_t i = 0; i < cube.size(); ++i) {
+        //         if (i > 0) std::cout << ",";
+        //         std::cout<< cube[i];
+        //     }
+        //     std::cout << "]";
+        //     std::cout << '\n';
+        // }
+        // std::cout << std::flush;
+    } else {
+        std::cout << "Too many hard tasks (" << bestFitness.hard << ")" << std::endl;
+    }
     return best;
 }
 
 // Create an initial individual
-Instance EvolutionaryAlgorithm::initialize(int instanceSize, std::vector<int> pool) { // NOLINT(readability-convert-member-functions-to-static)
-    std::vector<int> data(instanceSize, -1);
-    Instance instance(std::move(data), std::move(pool));
-
-    // std::uniform_real_distribution<double> dis(0.0, 1.0);
-    // std::uniform_int_distribution<size_t> dis_pool_index(0, pool.size() - 1);
+Instance EvolutionaryAlgorithm::initialize(
+    int instanceSize,
+    std::vector<int> pool
+) {
     // std::vector<int> data(instanceSize, -1);
-    // for (int i = 0; i < instanceSize; ++i) {
-    //     while (data[i] == -1) {
-    //         size_t j = dis_pool_index(gen);
-    //         if (pool[j] != -1) {
-    //             std::swap(data[i], pool[j]);
-    //         }
-    //     }
-    // }
-    // pool.erase(std::remove(pool.begin(), pool.end(), -1), pool.end());
-    // Instance instance(data, pool);
+    // Instance instance(std::move(data), std::move(pool));
+
+    std::uniform_real_distribution<double> dis(0.0, 1.0);
+    std::uniform_int_distribution<size_t> dis_pool_index(0, pool.size() - 1);
+    std::vector<int> data(instanceSize, -1);
+    for (int i = 0; i < instanceSize; ++i) {
+        while (data[i] == -1) {
+            size_t j = dis_pool_index(gen);
+            if (pool[j] != -1) {
+                std::swap(data[i], pool[j]);
+            }
+        }
+    }
+    pool.erase(std::remove(pool.begin(), pool.end(), -1), pool.end());
+    Instance instance(data, pool);
 
     return instance;
 }
