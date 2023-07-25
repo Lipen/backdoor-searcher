@@ -21,6 +21,10 @@ option(MINISAT_TEST_BENCHMARKS "Register benchmarks with CTest" OFF)
 option(MINISAT_INSTALL "minisat: generate the install target" ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 
 include(GNUInstallDirs)
 
