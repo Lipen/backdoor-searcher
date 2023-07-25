@@ -37,7 +37,7 @@ using namespace Minisat;
 
 //=================================================================================================
 
-void printStats(Solver& solver) {
+void printStats(Solver &solver) {
     double cpu_time = cpuTime();
 #ifndef __MINGW32__
     double mem_used = memUsedPeak();
@@ -52,17 +52,21 @@ void printStats(Solver& solver) {
 #endif
 
     fprintf(stderr, "restarts              : %" PRIu64 "\n", solver.starts);
-    fprintf(stderr, "conflicts             : %-12" PRIu64 "   (%.0f /sec)\n", solver.conflicts, solver.conflicts / cpu_time);
-    fprintf(stderr, "decisions             : %-12" PRIu64 "   (%4.2f %% random) (%.0f /sec)\n", solver.decisions, (float)solver.rnd_decisions * 100 / (float)solver.decisions, solver.decisions / cpu_time);
-    fprintf(stderr, "propagations          : %-12" PRIu64 "   (%.0f /sec)\n", solver.propagations, solver.propagations / cpu_time);
-    fprintf(stderr, "conflict literals     : %-12" PRIu64 "   (%4.2f %% deleted)\n", solver.tot_literals, (solver.max_literals - solver.tot_literals) * 100 / (double)solver.max_literals);
+    fprintf(stderr, "conflicts             : %-12" PRIu64 "   (%.0f /sec)\n", solver.conflicts,
+            solver.conflicts / cpu_time);
+    fprintf(stderr, "decisions             : %-12" PRIu64 "   (%4.2f %% random) (%.0f /sec)\n", solver.decisions,
+            (float) solver.rnd_decisions * 100 / (float) solver.decisions, solver.decisions / cpu_time);
+    fprintf(stderr, "propagations          : %-12" PRIu64 "   (%.0f /sec)\n", solver.propagations,
+            solver.propagations / cpu_time);
+    fprintf(stderr, "conflict literals     : %-12" PRIu64 "   (%4.2f %% deleted)\n", solver.tot_literals,
+            (solver.max_literals - solver.tot_literals) * 100 / (double) solver.max_literals);
 #ifndef __MINGW32__
     if (mem_used != 0) fprintf(stderr, "Memory used           : %.2f MB\n", mem_used);
 #endif
     fprintf(stderr, "CPU time              : %g s\n", cpu_time);
 }
 
-static Solver* solver;
+static Solver *solver;
 #if !(defined(__MINGW32__) || defined(_MSC_VER))
 // Terminate by notifying the solver and back out gracefully. This is mainly to have a test-case
 // for this feature of the Solver as it may take longer than an immediate call to '_exit()'.
@@ -86,9 +90,10 @@ static void SIGINT_exit(int) {
 //=================================================================================================
 // Main:
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv) {
     try {
-        setUsageHelp("USAGE: %s [options] <input-file> <result-output-file>\n\n  where input may be either in plain or gzipped DIMACS.\n");
+        setUsageHelp(
+            "USAGE: %s [options] <input-file> <result-output-file>\n\n  where input may be either in plain or gzipped DIMACS.\n");
         // fprintf(stderr, "This is MiniSat 2.0 beta\n");
 
 #if defined(__linux__) && !defined(__ANDROID__)
@@ -101,11 +106,14 @@ int main(int argc, char** argv) {
         // Extra options:
         //
         IntOption verb("MAIN", "verb", "Verbosity level (0=silent, 1=some, 2=more).", 1, IntRange(0, 2));
-        IntOption cpu_lim("MAIN", "cpu-lim", "Limit on CPU time allowed in seconds.\n", INT32_MAX, IntRange(0, INT32_MAX));
-        IntOption mem_lim("MAIN", "mem-lim", "Limit on memory usage in megabytes.\n", INT32_MAX, IntRange(0, INT32_MAX));
+        IntOption cpu_lim("MAIN", "cpu-lim", "Limit on CPU time allowed in seconds.\n", INT32_MAX,
+                          IntRange(0, INT32_MAX));
+        IntOption mem_lim("MAIN", "mem-lim", "Limit on memory usage in megabytes.\n", INT32_MAX,
+                          IntRange(0, INT32_MAX));
         IntOption ea_seed("EA", "ea-seed", "Seed for EA.\n", 42, IntRange(0, INT32_MAX));
         IntOption ea_num_runs("EA", "ea-num-runs", "Number of EA runs.\n", 5, IntRange(0, INT32_MAX));
-        IntOption ea_num_iterations("EA", "ea-num-iters", "Number of EA iterations in each run.\n", 10000, IntRange(0, INT32_MAX));
+        IntOption ea_num_iterations("EA", "ea-num-iters", "Number of EA iterations in each run.\n", 10000,
+                                    IntRange(0, INT32_MAX));
         IntOption ea_instance_size("EA", "ea-instance-size", "Instance size in EA.\n", 20, IntRange(1, INT32_MAX));
 
         parseOptions(argc, argv, true);
@@ -149,7 +157,7 @@ int main(int argc, char** argv) {
         if (argc == 1)
             fprintf(stderr, "Reading from standard input... Use '--help' for help.\n");
 
-        FILE* in = (argc == 1) ? fdopen(0, "rb") : fopen(argv[1], "rb");
+        FILE *in = (argc == 1) ? fdopen(0, "rb") : fopen(argv[1], "rb");
         if (in == NULL)
             fprintf(stderr, "ERROR! Could not open file: %s\n", argc == 1 ? "<stdin>" : argv[1]), exit(1);
 
@@ -160,7 +168,7 @@ int main(int argc, char** argv) {
 
         parse_DIMACS(in, S);
         fclose(in);
-        FILE* res = argc >= 3 ? fopen(argv[2], "wb") : stdout;
+        FILE *res = argc >= 3 ? fopen(argv[2], "wb") : stdout;
 
         if (S.verbosity > 0) {
             fprintf(stderr, "|  Number of variables:  %12d                                         |\n", S.nVars());
@@ -169,7 +177,8 @@ int main(int argc, char** argv) {
 
         double parsed_time = cpuTime();
         if (S.verbosity > 0) {
-            fprintf(stderr, "|  Parse time:           %12.2f s                                       |\n", parsed_time - initial_time);
+            fprintf(stderr, "|  Parse time:           %12.2f s                                       |\n",
+                    parsed_time - initial_time);
             fprintf(stderr, "|                                                                             |\n");
         }
 
@@ -184,23 +193,36 @@ int main(int argc, char** argv) {
 
         EvolutionaryAlgorithm ea(S, ea_seed);
 
+        std::vector<int> pool;
+        pool.reserve(S.nVars());
+        for (int i = 0; i < S.nVars(); ++i) {
+            // Note: variables in MiniSat are 0-based
+            pool.push_back(i);
+        }
+
         // Run EA
-        Instance best = ea.run(ea_num_iterations, ea_instance_size);
+        Instance best = ea.run(ea_num_iterations, ea_instance_size, pool);
 
         for (int i = 2; i <= ea_num_runs; ++i) {
-            // Extend `ea.unusedVariables` with `best.variables`
             std::vector<int> vars = best.getVariables();
-            ea.unusedVariables.insert(vars.begin(), vars.end());
+            std::sort(vars.begin(), vars.end());
+
+            // std::vector<int> difference;
+            // std::set_difference(pool.begin(), pool.end(),
+            //                     vars.begin(), vars.end(),
+            //                     std::back_inserter(difference));
+            // pool = difference;
 
             // Another run of EA
             std::cout << "\n----------------------------------------\n\n";
-            best = ea.run(ea_num_iterations, ea_instance_size);
+            best = ea.run(ea_num_iterations, ea_instance_size, pool);
         }
 
         auto endTime = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
         std::cout << '\n';
-        std::cout << "Done " << ea_num_runs << " EA runs in " << duration.count() / 1000.0 << " s" << std::endl;
+        std::cout << "Done " << ea_num_runs << " EA runs in "
+                  << duration.count() / 1000.0 << " s" << std::endl;
 
         //         if (!S.simplify()){
         //             if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
@@ -238,7 +260,7 @@ int main(int argc, char** argv) {
         // #else
         //         return (ret == l_True ? 10 : ret == l_False ? 20 : 0);
         // #endif
-    } catch (OutOfMemoryException&) {
+    } catch (OutOfMemoryException &) {
         fprintf(stderr, "===============================================================================\n");
         fprintf(stderr, "INDETERMINATE\n");
         exit(0);

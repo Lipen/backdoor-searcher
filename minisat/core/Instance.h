@@ -5,6 +5,7 @@
 #include <iostream>
 #include <optional>
 #include <ostream>
+#include <utility>
 #include <vector>
 
 #include "minisat/core/Fitness.h"
@@ -17,13 +18,15 @@ struct Instance {
     std::vector<int> pool;
     std::optional<Fitness> _cached_fitness;
 
-    Instance(int size, std::vector<int> pool) : data(size, -1), pool(std::move(pool)) {}
+    virtual ~Instance() = default;
+
+    Instance(std::vector<int> data, std::vector<int> pool) : data(std::move(data)), pool(std::move(pool)) {}
 
     // Copy constructor
-    Instance(const Instance& other) : data(other.data), pool(other.pool) {}
+    Instance(const Instance &other) : data(other.data), pool(other.pool) {}
 
     // Copy assignment operator
-    Instance& operator=(const Instance& other) {
+    Instance &operator=(const Instance &other) {
         // Check for self-assignment
         if (this != &other) {
             data = other.data;  // copy
@@ -33,9 +36,9 @@ struct Instance {
         return *this;
     }
 
-    int numVariables() const {
+    [[nodiscard]] int numVariables() const {
         int count = 0;
-        for (int x : data) {
+        for (int x: data) {
             if (x != -1) {
                 count++;
             }
@@ -43,12 +46,12 @@ struct Instance {
         return count;
     }
 
-    std::vector<int> getVariables() const {
+    [[nodiscard]] std::vector<int> getVariables() const {
         std::vector<int> variables;
-        for (int x : data) {
+        for (int x: data) {
             if (x != -1) {
                 // Note: variables in MiniSat are 0-based
-                int var = (int)x;
+                int var = (int) x;
                 variables.push_back(var);
             }
         }
@@ -56,9 +59,9 @@ struct Instance {
         return variables;
     }
 
-    std::vector<bool> getBitmask(int numVars) const {
+    [[nodiscard]] std::vector<bool> getBitmask(int numVars) const {
         std::vector<bool> bits(numVars);
-        for (int var : data) {
+        for (int var: data) {
             if (var != -1) {
                 bits[var] = true;
             }
@@ -66,7 +69,7 @@ struct Instance {
         return bits;
     }
 
-    Fitness calculateFitness(Solver& solver) {
+    Fitness calculateFitness(Solver &solver) {
         if (_cached_fitness.has_value()) {
             // std::cout << "cached fitness: " << _cached_fitness << std::endl;
             return _cached_fitness.value();
@@ -157,11 +160,12 @@ struct Instance {
     int operator[](size_t index) const {
         return data[index];
     }
-    int& operator[](size_t index) {
+
+    int &operator[](size_t index) {
         return data[index];
     }
 
-    size_t size() const {
+    [[nodiscard]] size_t size() const {
         return data.size();
     }
 
@@ -171,19 +175,21 @@ struct Instance {
     Iterator begin() {
         return data.begin();
     }
+
     Iterator end() {
         return data.end();
     }
 
-    ConstIterator begin() const {
+    [[nodiscard]] ConstIterator begin() const {
         return data.begin();
     }
-    ConstIterator end() const {
+
+    [[nodiscard]] ConstIterator end() const {
         return data.end();
     }
 
     // Streaming support
-    friend std::ostream& operator<<(std::ostream& os, const Instance& instance) {
+    friend std::ostream &operator<<(std::ostream &os, const Instance &instance) {
         std::vector<int> vars = instance.getVariables();
         os << "[";
         for (size_t i = 0; i < vars.size(); ++i) {

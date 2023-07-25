@@ -13,24 +13,25 @@
 namespace Minisat {
 
 class EvolutionaryAlgorithm {
-   public:
+public:
     virtual ~EvolutionaryAlgorithm() = default;
-    explicit EvolutionaryAlgorithm(Solver& solver, int seed = -1);
 
-    std::set<int> unusedVariables;
+    explicit EvolutionaryAlgorithm(Solver &solver, int seed = -1);
 
-    Instance run(int numIterations, int instanceSize, int seed = -1);
+    Instance run(int numIterations, int instanceSize, std::vector<int> pool, int seed = -1);
 
-   private:
+private:
     std::mt19937 gen;
-    Solver& solver;
+    Solver &solver;
     std::unordered_map<std::vector<bool>, Fitness> cache;
 
-    Instance initialize(int numVariables);
-    Fitness calculateFitness(Instance& individual);
-    void mutate(Instance& mutatedIndividual);
+    Instance initialize(int numVariables, std::vector<int> pool);
 
-    bool is_cached(Instance& instance, Fitness& fitness);
+    Fitness calculateFitness(Instance &individual);
+
+    void mutate(Instance &mutatedIndividual);
+
+    bool is_cached(const Instance &instance, Fitness &fitness) const;
 };
 
 }  // namespace Minisat

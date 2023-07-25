@@ -4,18 +4,24 @@
 #include <chrono>
 #include <iostream>
 #include <random>
+#include <utility>
 #include <vector>
 
 namespace Minisat {
 
-EvolutionaryAlgorithm::EvolutionaryAlgorithm(Solver& solver, int seed) : solver(solver) {
+EvolutionaryAlgorithm::EvolutionaryAlgorithm(Solver &solver, int seed) : solver(solver) {
     if (seed != -1) {
         gen.seed(seed);
     }
 }
 
 // Run the evolutionary algorithm
-Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int seed) {
+Instance EvolutionaryAlgorithm::run(
+    int numIterations,
+    int instanceSize,
+    std::vector<int> pool,
+    int seed
+) {
     if (seed != -1) {
         gen.seed(seed);
     }
@@ -24,18 +30,17 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
 
     std::cout << "instance size: " << instanceSize << std::endl;
     std::cout << "solver variables: " << solver.nVars() << std::endl;
-    std::cout << "unused variables: " << unusedVariables.size() << std::endl;
 
     std::cout << '\n';
 
     // Initial instance:
-    Instance instance = initialize(instanceSize);
+    Instance instance = initialize(instanceSize, std::move(pool));
     if (instance.pool.empty()) {
         std::cout << "Pool of variables is empty, cannot run!" << std::endl;
         return instance;
     }
     Fitness fit = calculateFitness(instance);
-    std::cout << "Initial instance: " << instance << std::endl;
+    std::cout << "Initial instance with " << instance.numVariables() << " vars: " << instance << std::endl;
     std::cout << "Initial fitness: " << fit.fitness << " (rho=" << fit.rho << ")" << std::endl;
 
     int bestIteration = 0;
@@ -46,6 +51,8 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
         // if (i <= 10 || i % 100 == 0) {
         //     std::cout << "\n=== Iteration #" << i << std::endl;
         // }
+
+        auto startTime = std::chrono::high_resolution_clock::now();
 
         Instance mutatedInstance = instance;  // copy
         mutate(mutatedInstance);
@@ -63,13 +70,18 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
         // }
         // std::cout << "]" << std::endl;
 
-        auto startTime = std::chrono::high_resolution_clock::now();
         Fitness mutatedFitness = calculateFitness(mutatedInstance);
         // std::cout << "Mutated fitness: " << mutatedFitness << std::endl;
+
         auto endTime = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
         if (i <= 10 || (i < 1000 && i % 100 == 0) || (i < 10000 && i % 1000 == 0) || (i % 10000 == 0)) {
-            std::cout << "[" << i << "/" << numIterations << "] Fitness " << mutatedFitness.fitness << " (rho=" << mutatedFitness.rho << ") for " << mutatedInstance.numVariables() << " vars " << mutatedInstance << " in " << duration.count() << " ms" << std::endl;
+            std::cout << "[" << i << "/" << numIterations << "] "
+                      << "Fitness " << mutatedFitness.fitness
+                      << " (rho=" << mutatedFitness.rho << ")"
+                      << " for " << mutatedInstance.numVariables() << " vars "
+                      << mutatedInstance << " in " << duration.count() << " ms"
+                      << std::endl;
         }
 
         // Update the best
@@ -111,21 +123,30 @@ Instance EvolutionaryAlgorithm::run(int numIterations, int instanceSize, int see
 }
 
 // Create an initial individual
-Instance EvolutionaryAlgorithm::initialize(int instanceSize) {
-    std::vector<int> pool;
-    for (int i = 0; i < solver.nVars(); ++i) {
-        if (unusedVariables.find(i) == unusedVariables.end()) {
-            // Note: variables are 0-based
-            pool.push_back(i);
-        }
-    }
-    Instance instance(instanceSize, pool);
+Instance EvolutionaryAlgorithm::initialize(int instanceSize, std::vector<int> pool) { // NOLINT(readability-convert-member-functions-to-static)
+    std::vector<int> data(instanceSize, -1);
+    Instance instance(std::move(data), std::move(pool));
+
+    // std::uniform_real_distribution<double> dis(0.0, 1.0);
+    // std::uniform_int_distribution<size_t> dis_pool_index(0, pool.size() - 1);
+    // std::vector<int> data(instanceSize, -1);
+    // for (int i = 0; i < instanceSize; ++i) {
+    //     while (data[i] == -1) {
+    //         size_t j = dis_pool_index(gen);
+    //         if (pool[j] != -1) {
+    //             std::swap(data[i], pool[j]);
+    //         }
+    //     }
+    // }
+    // pool.erase(std::remove(pool.begin(), pool.end(), -1), pool.end());
+    // Instance instance(data, pool);
+
     return instance;
 }
 
 // Calculate the fitness value of the individual
-Fitness EvolutionaryAlgorithm::calculateFitness(Instance& instance) {
-    Fitness fitness;
+Fitness EvolutionaryAlgorithm::calculateFitness(Instance &instance) {
+    Fitness fitness{};
     if (!is_cached(instance, fitness)) {
         // Delegate to instance for computing the fitness:
         fitness = instance.calculateFitness(solver);
@@ -143,12 +164,12 @@ Fitness EvolutionaryAlgorithm::calculateFitness(Instance& instance) {
 }
 
 // Mutate the individual by flipping bits
-void EvolutionaryAlgorithm::mutate(Instance& instance) {
+void EvolutionaryAlgorithm::mutate(Instance &instance) {
     std::uniform_real_distribution<double> dis(0.0, 1.0);
     std::uniform_int_distribution<size_t> dis_index(0, instance.pool.size() - 1);
 
     for (size_t i = 0; i < instance.size(); ++i) {
-        if (dis(gen) < (1.0 / (instance.pool.size()))) {
+        if (dis(gen) < (1.0 / static_cast<double>(instance.pool.size()))) {
             size_t j = dis_index(gen);
             std::swap(instance[i], instance.pool[j]);
         }
@@ -169,7 +190,7 @@ void EvolutionaryAlgorithm::mutate(Instance& instance) {
     // }
 }
 
-bool EvolutionaryAlgorithm::is_cached(Instance& instance, Fitness& fitness) {
+bool EvolutionaryAlgorithm::is_cached(const Instance &instance, Fitness &fitness) const {
     auto it = cache.find(instance.getBitmask(solver.nVars()));
     if (it != cache.end()) {
         fitness = it->second;

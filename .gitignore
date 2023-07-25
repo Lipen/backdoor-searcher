@@ -1,4 +1,7 @@
 .vscode/
 .idea/
+build/
+cmake-build-release/
+cmake-build-debug/
 data/
-/log_*
+logs/
