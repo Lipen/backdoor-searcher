@@ -26,12 +26,15 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "minisat/mtl/Alg.h"
 #include "minisat/utils/Options.h"
 #include "minisat/core/SolverTypes.h"
+#include "minisat/core/EA.h"
 
 
 namespace Minisat {
 
 //=================================================================================================
 // Solver -- the main class:
+
+class EvolutionaryAlgorithm;
 
 class Solver {
 public:
@@ -40,6 +43,10 @@ public:
     //
     Solver();
     virtual ~Solver();
+
+    // Evolutionary algorithm
+    //
+    EvolutionaryAlgorithm* ea;
 
     // Problem specification:
     //

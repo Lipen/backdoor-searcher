@@ -6,11 +6,14 @@
 #include <unordered_map>
 #include <vector>
 
+#include "minisat/core/Solver.h"
 #include "minisat/core/Fitness.h"
 #include "minisat/core/Instance.h"
-#include "minisat/core/Solver.h"
 
 namespace Minisat {
+
+class Solver;
+struct Instance;
 
 class EvolutionaryAlgorithm {
 public:

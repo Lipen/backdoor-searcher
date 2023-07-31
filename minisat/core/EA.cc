@@ -3,11 +3,30 @@
 #include <algorithm>
 #include <chrono>
 #include <iostream>
+#include <fstream>
 #include <random>
 #include <utility>
 #include <vector>
 
 namespace Minisat {
+
+template<typename T>
+std::ostream &operator<<(std::ostream &os, const std::vector<T> &myVector) {
+    os << "[";
+    bool first = true;
+    for (const auto &element: myVector) {
+        if (!first) os << ", ";
+        os << element;
+        first = false;
+    }
+    os << "]";
+    return os;
+}
+
+template<typename T>
+void printVector(const std::vector<T> &myVector, std::ostream &os = std::cout) {
+    os << myVector << std::endl;
+}
 
 EvolutionaryAlgorithm::EvolutionaryAlgorithm(Solver &solver, int seed) : solver(solver) {
     if (seed != -1) {
@@ -27,10 +46,9 @@ Instance EvolutionaryAlgorithm::run(
     }
 
     std::cout << "Running EA for " << numIterations << " iterations..." << std::endl;
-
     std::cout << "instance size: " << instanceSize << std::endl;
     std::cout << "solver variables: " << solver.nVars() << std::endl;
-
+    std::cout << "pool size: " << pool.size() << std::endl;
     std::cout << '\n';
 
     // Initial instance:
@@ -40,8 +58,11 @@ Instance EvolutionaryAlgorithm::run(
         return instance;
     }
     Fitness fit = calculateFitness(instance);
-    std::cout << "Initial instance with " << instance.numVariables() << " vars: " << instance << std::endl;
-    std::cout << "Initial fitness: " << fit.fitness << " (rho=" << fit.rho << ")" << std::endl;
+    std::cout << "Initial fitness " << fit.fitness
+              << " (rho=" << fit.rho << ", hard=" << fit.hard << ")"
+              << " for " << instance.numVariables() << " vars: "
+              << instance
+              << std::endl;
 
     int bestIteration = 0;
     Instance best = instance;
@@ -56,22 +77,8 @@ Instance EvolutionaryAlgorithm::run(
 
         Instance mutatedInstance = instance;  // copy
         mutate(mutatedInstance);
-        // Fitness _ignore;
-        // while (is_cached(mutatedInstance, _ignore)) {
-        //     // std::cout << "in cache, mutating again..." << std::endl;
-        //     mutate(mutatedInstance);
-        // }
-        // std::cout << "Mutated instance: " << mutatedInstance << std::endl;
-        // std::vector<int> mutatedVars = mutatedInstance.getVariables();
-        // std::cout << "Mutated variables (total " << mutatedVars.size() << "): [";
-        // for (size_t i = 0; i < mutatedVars.size(); ++i) {
-        //     if (i > 0) std::cout << ", ";
-        //     std::cout << mutatedVars[i];
-        // }
-        // std::cout << "]" << std::endl;
 
         Fitness mutatedFitness = calculateFitness(mutatedInstance);
-        // std::cout << "Mutated fitness: " << mutatedFitness << std::endl;
 
         auto endTime = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
@@ -97,58 +104,51 @@ Instance EvolutionaryAlgorithm::run(
             instance = mutatedInstance;
             fit = mutatedFitness;
         }
-
-        // (1,1) strategy: replace 'current' instance with mutated in any case
-        // instance = mutatedInstance;
-        // fit = mutatedFitness;
-
-        // if (fit.rho >= 0.999) {
-        //     std::cout << "Found rho >= 0.999 on iteration " << i << std::endl;
-        //     break;
-        // }
     }
 
-    // std::cout << std::endl;
-    // std::cout << "Best iteration: " << bestIteration << std::endl;
-    // std::cout << "Best fitness: " << bestFitness << std::endl;
-    // std::cout << "Best instance: " << best << std::endl;
     std::vector<int> bestVars = best.getVariables();
     std::cout << "Best fitness " << bestFitness.fitness
               << " (rho=" << bestFitness.rho
               << ", hard=" << bestFitness.hard
-              << ") on iteration " << bestIteration << " with " << bestVars.size() << " variables: [";
-    for (size_t i = 0; i < bestVars.size(); ++i) {
-        if (i > 0) std::cout << ", ";
-        std::cout << bestVars[i];
-    }
-    std::cout << "]" << std::endl;
-    if (bestFitness.hard <= 16) {
-        std::vector<std::vector<int>> cubes;
-        uint64_t total_count;
-        bool verb = false;
-        // solver.gen_all_valid_assumptions_propcheck(vars, total_count, cubes, verb);
-        solver.gen_all_valid_assumptions_tree(bestVars, total_count, cubes, (int) bestFitness.hard, verb);
-        if (total_count != bestFitness.hard) {
-            std::cout << "Mismatch: total_count=" << total_count << ", numHardTasks=" << bestFitness.hard << std::endl;
-        }
-        if (cubes.size() != bestFitness.hard) {
-            std::cout << "Mismatch: cubes.size()=" << cubes.size() << ", numHardTasks=" << bestFitness.hard
-                      << std::endl;
-        }
-        // std::cout << "Hard tasks: " << bestFitness.hard << std::endl;
-        // for (auto&& cube : cubes) {
-        //     std::cout << "[";
-        //     for (size_t i = 0; i < cube.size(); ++i) {
-        //         if (i > 0) std::cout << ",";
-        //         std::cout<< cube[i];
-        //     }
-        //     std::cout << "]";
-        //     std::cout << '\n';
-        // }
-        // std::cout << std::flush;
+              << ") on iteration " << bestIteration
+              << " with " << bestVars.size() << " variables: " << bestVars
+              << std::endl;
+
+    // Dump best to file
+    std::ofstream outFile("backdoors.txt", std::ios::app);
+    if (outFile.is_open()) {
+        outFile << "Best fitness " << bestFitness.fitness
+                << " (rho=" << bestFitness.rho
+                << ", hard=" << bestFitness.hard
+                << ") on iteration " << bestIteration
+                << " with " << bestVars.size() << " variables: " << bestVars
+                << std::endl;
+        outFile.close();
     } else {
-        std::cout << "Too many hard tasks (" << bestFitness.hard << ")" << std::endl;
+        std::cout << "Error opening the file." << std::endl;
     }
+
+    // if (bestFitness.hard <= 16) {
+    //     std::vector<std::vector<int>> cubes;
+    //     uint64_t total_count;
+    //     bool verb = false;
+    //     // solver.gen_all_valid_assumptions_propcheck(vars, total_count, cubes, verb);
+    //     solver.gen_all_valid_assumptions_tree(bestVars, total_count, cubes, (int) bestFitness.hard, verb);
+    //     std::cout << "Hard tasks: " << bestFitness.hard << std::endl;
+    //     for (auto&& cube : cubes) {
+    //         std::cout << "[";
+    //         for (size_t i = 0; i < cube.size(); ++i) {
+    //             if (i > 0) std::cout << ",";
+    //             std::cout<< cube[i];
+    //         }
+    //         std::cout << "]";
+    //         std::cout << '\n';
+    //     }
+    //     std::cout << std::flush;
+    // } else {
+    //     std::cout << "Too many hard tasks (" << bestFitness.hard << ")" << std::endl;
+    // }
+
     return best;
 }
 

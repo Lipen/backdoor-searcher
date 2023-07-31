@@ -19,6 +19,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 #include "minisat/core/Solver.h"
+#include "minisat/core/EA.h"
 
 #include <math.h>
 
@@ -104,11 +105,10 @@ Solver::Solver() :
                    simpDB_props(0),
                    order_heap(VarOrderLt(activity)),
                    progress_estimate(0),
-                   remove_satisfied(true)
+                   remove_satisfied(true),
 
                    // Resource constraints:
                    //
-                   ,
                    conflict_budget(-1),
                    propagation_budget(-1),
                    asynch_interrupt(false) {}
@@ -802,6 +802,19 @@ lbool Solver::solve_() {
         status = search(static_cast<int>(rest_base * restart_first));
         if (!withinBudget()) break;
         curr_restarts++;
+
+        // Run EA on restart:
+        if (ea) {
+            cancelUntil(0);
+
+            std::vector<int> pool;
+            pool.reserve(nVars());
+            for (int i = 0; i < nVars(); ++i) {
+                pool.push_back(i);
+            }
+
+            ea->run(100000, 10, pool);
+        }
     }
 
     if (verbosity >= 1)
@@ -1089,7 +1102,7 @@ bool Solver::gen_all_valid_assumptions_tree(
 
     if (verb) {
         std::cout << "c checking backdoor: ";
-        for (int j = 0; j < d_set.size(); j++) {
+        for (size_t j = 0; j < d_set.size(); j++) {
             std::cout << d_set[j] + 1 << ' ';
         }
         std::cout << '\n';
@@ -1102,7 +1115,7 @@ bool Solver::gen_all_valid_assumptions_tree(
 
     // aux is a bit-mask for a task
     std::vector<int> aux(d_set.size());
-    for (int i = 0; i < d_set.size(); i++) {
+    for (size_t i = 0; i < d_set.size(); i++) {
         aux[i] = 0;
         assumptions.push(~mkLit(d_set[i]));
     }

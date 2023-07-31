@@ -1,6 +1,8 @@
 #ifndef FITNESS_H
 #define FITNESS_H
 
+#include <cstdint>
+
 namespace Minisat {
 
 struct Fitness {
