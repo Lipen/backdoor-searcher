@@ -10,27 +10,27 @@ struct Fitness {
     double rho;
     uint64_t hard;
 
-    bool operator<(const Fitness& other) const {
+    bool operator<(const Fitness &other) const {
         return fitness < other.fitness;
     }
 
-    bool operator==(const Fitness& other) const {
+    bool operator==(const Fitness &other) const {
         return fitness == other.fitness;
     }
 
-    bool operator!=(const Fitness& other) const {
+    bool operator!=(const Fitness &other) const {
         return !(*this == other);
     }
 
-    bool operator>(const Fitness& other) const {
+    bool operator>(const Fitness &other) const {
         return other < *this;
     }
 
-    bool operator>=(const Fitness& other) const {
+    bool operator>=(const Fitness &other) const {
         return !(*this < other);
     }
 
-    bool operator<=(const Fitness& other) const {
+    bool operator<=(const Fitness &other) const {
         return !(*this > other);
     }
 };

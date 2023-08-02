@@ -189,7 +189,7 @@ Fitness EvolutionaryAlgorithm::calculateFitness(Instance &instance) {
         cache_misses++;
         if (instance._cached_fitness.has_value()) {
             cached_hits++;
-        }else{
+        } else {
             cached_misses++;
         }
 
