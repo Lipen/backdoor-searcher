@@ -835,8 +835,9 @@ lbool Solver::solve_() {
                 for (CRef ref : learnts) {
                     Clause& learnt = ca[ref];
                     for (int i = 0; i < learnt.size(); ++i) {
+                        int v = var(learnt[i]) + 1;
                         if (sign(learnt[i])) learntFile << '-';
-                        learntFile << var(learnt[i]) << ' ';
+                        learntFile << v << ' ';
                     }
                     learntFile << "0\n";
                 }
