@@ -190,6 +190,28 @@ int main(int argc, char **argv) {
         signal(SIGXCPU, SIGINT_interrupt);
 #endif
 
+        if (!S.simplify()) {
+            if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
+            if (S.verbosity > 0) {
+                fprintf(stderr,
+                        "===============================================================================\n");
+                fprintf(stderr, "Solved by unit propagation\n");
+                printStats(S);
+                fprintf(stderr, "\n");
+            }
+            fprintf(stderr, "UNSATISFIABLE\n");
+            exit(20);
+        }
+
+        // Truncate the "backdoors" file beforehand:
+        std::ofstream outFile("backdoors.txt", std::ios::out | std::ios::trunc);
+        if (outFile.is_open()) {
+            outFile.close();
+        } else {
+            std::cerr << "Error opening the file." << std::endl;
+            return 1;
+        }
+
         if (1) {
 
             auto startTime = std::chrono::high_resolution_clock::now();
@@ -198,31 +220,29 @@ int main(int argc, char **argv) {
             std::vector<int> pool;
             pool.reserve(S.nVars());
             for (int i = 0; i < S.nVars(); ++i) {
-                // Note: variables in MiniSat are 0-based
-                pool.push_back(i);
+                if (S.value(i) == l_Undef) {
+                    // Note: variables in MiniSat are 0-based
+                    pool.push_back(i);
+                } else {
+                    // std::cout << "Skipping variable " << i
+                    //           << " already assigned to "
+                    //           << (S.value(i).isTrue() ? "TRUE" : "FALSE")
+                    //           << std::endl;
+                }
             }
-
-            // // Truncate the "backdoors" file beforehand:
-            // std::ofstream outFile("backdoors.txt", std::ios::out | std::ios::trunc);
-            // if (outFile.is_open()) {
-            //     outFile.close();
-            // } else {
-            //     std::cerr << "Error opening the file." << std::endl;
-            //     return 1;
-            // }
 
             // Run EA
             Instance best = ea.run(ea_num_iterations, ea_instance_size, pool);
 
             for (int i = 2; i <= ea_num_runs; ++i) {
-                std::vector<int> vars = best.getVariables();
-                std::sort(vars.begin(), vars.end());
-
-                std::vector<int> difference;
-                std::set_difference(pool.begin(), pool.end(),
-                                    vars.begin(), vars.end(),
-                                    std::back_inserter(difference));
-                pool = difference;
+                // Forbid already used variables:
+                // std::vector<int> vars = best.getVariables();
+                // std::sort(vars.begin(), vars.end());
+                // std::vector<int> difference;
+                // std::set_difference(pool.begin(), pool.end(),
+                //                     vars.begin(), vars.end(),
+                //                     std::back_inserter(difference));
+                // pool = difference;
 
                 // Another run of EA
                 std::cout << "\n----------------------------------------\n\n";
@@ -230,10 +250,10 @@ int main(int argc, char **argv) {
             }
 
             auto endTime = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
             std::cout << '\n';
             std::cout << "Done " << ea_num_runs << " EA runs in "
-                      << duration.count() / 1000.0 << " s" << std::endl;
+                      << duration / 1000.0 << " s" << std::endl;
 
         } else {
 
@@ -242,29 +262,7 @@ int main(int argc, char **argv) {
             EvolutionaryAlgorithm ea(S, ea_seed);
             S.ea = &ea;
 
-            // Truncate the "backdoors" file beforehand:
-            std::ofstream outFile("backdoors.txt", std::ios::out | std::ios::trunc);
-            if (outFile.is_open()) {
-                outFile.close();
-            } else {
-                std::cerr << "Error opening the file." << std::endl;
-                return 1;
-            }
-
             // ------------------------------------------------------
-
-            if (!S.simplify()) {
-                if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
-                if (S.verbosity > 0) {
-                    fprintf(stderr,
-                            "===============================================================================\n");
-                    fprintf(stderr, "Solved by unit propagation\n");
-                    printStats(S);
-                    fprintf(stderr, "\n");
-                }
-                fprintf(stderr, "UNSATISFIABLE\n");
-                exit(20);
-            }
 
             vec<Lit> dummy;
             lbool ret = S.solveLimited(dummy);

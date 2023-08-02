@@ -149,6 +149,11 @@ Instance EvolutionaryAlgorithm::run(
     //     std::cout << "Too many hard tasks (" << bestFitness.hard << ")" << std::endl;
     // }
 
+    std::cout << "Cache hits: " << cache_hits << std::endl;
+    std::cout << "Cache misses: " << cache_misses << std::endl;
+    // std::cout << "Cached hits: " << cached_hits << std::endl;
+    // std::cout << "Cached misses: " << cached_misses << std::endl;
+
     return best;
 }
 
@@ -181,13 +186,21 @@ Instance EvolutionaryAlgorithm::initialize(
 Fitness EvolutionaryAlgorithm::calculateFitness(Instance &instance) {
     Fitness fitness{};
     if (!is_cached(instance, fitness)) {
+        cache_misses++;
+        if (instance._cached_fitness.has_value()) {
+            cached_hits++;
+        }else{
+            cached_misses++;
+        }
+
         // Delegate to instance for computing the fitness:
         fitness = instance.calculateFitness(solver);
 
         // Update global fitness cache:
-        cache.emplace(instance.getBitmask(solver.nVars()), fitness);
+        cache.emplace(instance.getVariables(), fitness);
     } else {
         // std::cout << "cached (global) fitness: " << fitness << std::endl;
+        cache_hits++;
     }
 
     // Update instance's local cache:
@@ -202,7 +215,7 @@ void EvolutionaryAlgorithm::mutate(Instance &instance) {
     std::uniform_int_distribution<size_t> dis_index(0, instance.pool.size() - 1);
 
     for (size_t i = 0; i < instance.size(); ++i) {
-        if (dis(gen) < (1.0 / static_cast<double>(instance.pool.size()))) {
+        if (dis(gen) < (1.0 / static_cast<double>(instance.size()))) {
             size_t j = dis_index(gen);
             std::swap(instance[i], instance.pool[j]);
         }
@@ -224,7 +237,7 @@ void EvolutionaryAlgorithm::mutate(Instance &instance) {
 }
 
 bool EvolutionaryAlgorithm::is_cached(const Instance &instance, Fitness &fitness) const {
-    auto it = cache.find(instance.getBitmask(solver.nVars()));
+    auto it = cache.find(instance.getVariables());
     if (it != cache.end()) {
         fitness = it->second;
         return true;

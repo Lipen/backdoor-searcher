@@ -13,7 +13,19 @@
 namespace Minisat {
 
 class Solver;
+
 struct Instance;
+
+struct VectorHasher {
+    template<typename T>
+    std::size_t operator()(const std::vector<T> &vec) const {
+        std::size_t seed = vec.size();
+        for (const auto &value: vec) {
+            seed ^= std::hash<T>{}(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+        }
+        return seed;
+    }
+};
 
 class EvolutionaryAlgorithm {
 public:
@@ -23,11 +35,15 @@ public:
 
     Instance run(int numIterations, int instanceSize, std::vector<int> pool, int seed = -1);
 
-private:
     std::mt19937 gen;
     Solver &solver;
-    std::unordered_map<std::vector<bool>, Fitness> cache;
+    std::unordered_map<std::vector<int>, Fitness, VectorHasher> cache;
+    int cache_hits = 0;
+    int cache_misses = 0;
+    int cached_hits = 0;
+    int cached_misses = 0;
 
+private:
     Instance initialize(int numVariables, std::vector<int> pool);
 
     Fitness calculateFitness(Instance &individual);

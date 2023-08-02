@@ -25,6 +25,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 
 #include <iostream>
 #include <vector>
+#include <chrono>
+#include <fstream>
+#include <string>
 
 #include "minisat/mtl/Sort.h"
 
@@ -795,26 +798,65 @@ lbool Solver::solve_() {
         fprintf(stderr, "===============================================================================\n");
     }
 
+    auto startTime = std::chrono::steady_clock::now();
+    bool first = true;
+    int runNumber = 0;
+
     // Search:
     int curr_restarts = 0;
     while (status == l_Undef) {
+        // Run EA on restart:
+        if (ea) {
+            auto currentTime = std::chrono::steady_clock::now();
+            auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
+            if (first || elapsedTime > 5*60) {
+                first = false;
+                cancelUntil(0);
+
+                std::vector<int> pool;
+                pool.reserve(nVars());
+                for (int i = 0; i < nVars(); ++i) {
+                    if (value(i) == l_Undef) {
+                        pool.push_back(i);
+                    }
+                }
+
+                std::ofstream outFile("backdoors.txt", std::ios::app);
+                if (outFile.is_open()) {
+                    outFile << "---" << std::endl;
+                } else {
+                    std::cout << "Error opening the file." << std::endl;
+                }
+                outFile.close();
+
+                std::string learntFilename = "learnts-" + std::to_string(runNumber) + ".txt";
+                std::cout << "Dumping " << learnts.size() << " learnts to '" << learntFilename << "'" <<std::endl;
+                std::ofstream learntFile(learntFilename, std::ios::out | std::ios::trunc);
+                for (CRef ref : learnts) {
+                    Clause& learnt = ca[ref];
+                    for (int i = 0; i < learnt.size(); ++i) {
+                        if (sign(learnt[i])) learntFile << '-';
+                        learntFile << var(learnt[i]) << ' ';
+                    }
+                    learntFile << "0\n";
+                }
+                learntFile.close();
+
+                std::cout << "Running EA 100 times. Run number = " << runNumber << std::endl;
+                runNumber++;
+                ea->cache.clear();
+                for (int i = 0; i < 100; ++i) {
+                    ea->run(1000, 10, pool);
+                }
+
+                startTime = currentTime;
+            }
+        }
+
         double rest_base = luby_restart ? luby(restart_inc, curr_restarts) : pow(restart_inc, curr_restarts);
         status = search(static_cast<int>(rest_base * restart_first));
         if (!withinBudget()) break;
         curr_restarts++;
-
-        // Run EA on restart:
-        if (ea) {
-            cancelUntil(0);
-
-            std::vector<int> pool;
-            pool.reserve(nVars());
-            for (int i = 0; i < nVars(); ++i) {
-                pool.push_back(i);
-            }
-
-            ea->run(100000, 10, pool);
-        }
     }
 
     if (verbosity >= 1)
@@ -1152,11 +1194,15 @@ bool Solver::gen_all_valid_assumptions_tree(
             // }
 
         } else {
+            // NO CONFLICT
+
             if (decisionLevel() == d_size) {
                 // found a valid vector of assumptions:
                 if (vector_of_assumptions.size() < limit) {
                     vector_of_assumptions.push_back(aux);
                 }
+                total_count++;
+                ascend = true;
 
                 if (verb) {
                     std::cout << "c valid vector of assumptions: ";
@@ -1165,10 +1211,8 @@ bool Solver::gen_all_valid_assumptions_tree(
                     }
                     std::cout << '\n';
                 }
-
-                ascend = true;
-                total_count++;
             }
+
             while (decisionLevel() < d_size) {
                 Lit p = assumptions[decisionLevel()];
                 newDecisionLevel();
