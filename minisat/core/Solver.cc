@@ -843,7 +843,7 @@ lbool Solver::solve_() {
                 }
                 learntFile.close();
 
-                std::cout << "Running EA 100 times. Run number = " << runNumber << std::endl;
+                std::cout << "Running EA multiple times. runNumber = " << runNumber << std::endl;
                 runNumber++;
                 ea->cache.clear();
                 for (int i = 0; i < 100; ++i) {
