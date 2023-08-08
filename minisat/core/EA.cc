@@ -2,19 +2,19 @@
 
 #include <algorithm>
 #include <chrono>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <random>
 #include <utility>
 #include <vector>
 
 namespace Minisat {
 
-template<typename T>
+template <typename T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &myVector) {
     os << "[";
     bool first = true;
-    for (const auto &element: myVector) {
+    for (const auto &element : myVector) {
         if (!first) os << ", ";
         os << element;
         first = false;
@@ -23,7 +23,7 @@ std::ostream &operator<<(std::ostream &os, const std::vector<T> &myVector) {
     return os;
 }
 
-template<typename T>
+template <typename T>
 void printVector(const std::vector<T> &myVector, std::ostream &os = std::cout) {
     os << myVector << std::endl;
 }
@@ -39,8 +39,7 @@ Instance EvolutionaryAlgorithm::run(
     int numIterations,
     int instanceSize,
     std::vector<int> pool,
-    int seed
-) {
+    int seed) {
     if (seed != -1) {
         gen.seed(seed);
     }
@@ -160,8 +159,7 @@ Instance EvolutionaryAlgorithm::run(
 // Create an initial individual
 Instance EvolutionaryAlgorithm::initialize(
     int instanceSize,
-    std::vector<int> pool
-) {
+    std::vector<int> pool) {
     // std::vector<int> data(instanceSize, -1);
     // Instance instance(std::move(data), std::move(pool));
 

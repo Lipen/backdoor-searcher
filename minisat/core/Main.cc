@@ -21,10 +21,10 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <errno.h>
 #include <signal.h>
 
-#include <iostream>
-#include <vector>
 #include <chrono>
 #include <fstream>
+#include <iostream>
+#include <vector>
 
 #include "minisat/core/Dimacs.h"
 #include "minisat/core/EA.h"
@@ -56,11 +56,11 @@ void printStats(Solver &solver) {
     fprintf(stderr, "conflicts             : %-12" PRIu64 "   (%.0f /sec)\n", solver.conflicts,
             solver.conflicts / cpu_time);
     fprintf(stderr, "decisions             : %-12" PRIu64 "   (%4.2f %% random) (%.0f /sec)\n", solver.decisions,
-            (float) solver.rnd_decisions * 100 / (float) solver.decisions, solver.decisions / cpu_time);
+            (float)solver.rnd_decisions * 100 / (float)solver.decisions, solver.decisions / cpu_time);
     fprintf(stderr, "propagations          : %-12" PRIu64 "   (%.0f /sec)\n", solver.propagations,
             solver.propagations / cpu_time);
     fprintf(stderr, "conflict literals     : %-12" PRIu64 "   (%4.2f %% deleted)\n", solver.tot_literals,
-            (solver.max_literals - solver.tot_literals) * 100 / (double) solver.max_literals);
+            (solver.max_literals - solver.tot_literals) * 100 / (double)solver.max_literals);
 #ifndef __MINGW32__
     if (mem_used != 0) fprintf(stderr, "Memory used           : %.2f MB\n", mem_used);
 #endif
@@ -217,7 +217,6 @@ int main(int argc, char **argv) {
         }
 
         if (1) {
-
             auto startTime = std::chrono::high_resolution_clock::now();
             EvolutionaryAlgorithm ea(S, ea_seed);
 
@@ -236,6 +235,7 @@ int main(int argc, char **argv) {
             }
 
             // Run EA
+            std::cout << "\n=== [" << 1 << "/" << ea_num_runs << "] -------------------------------------\n\n";
             Instance best = ea.run(ea_num_iterations, ea_instance_size, pool);
 
             for (int i = 2; i <= ea_num_runs; ++i) {
@@ -249,7 +249,7 @@ int main(int argc, char **argv) {
                 // pool = difference;
 
                 // Another run of EA
-                std::cout << "\n----------------------------------------\n\n";
+                std::cout << "\n=== [" << i << "/" << ea_num_runs << "] -------------------------------------\n\n";
                 best = ea.run(ea_num_iterations, ea_instance_size, pool);
             }
 
@@ -260,7 +260,6 @@ int main(int argc, char **argv) {
                       << duration / 1000.0 << " s" << std::endl;
 
         } else {
-
             // ------------------------------------------------------
 
             EvolutionaryAlgorithm ea(S, ea_seed);
@@ -274,7 +273,8 @@ int main(int argc, char **argv) {
                 printStats(S);
                 fprintf(stderr, "\n");
             }
-            fprintf(stderr, ret == l_True ? "SATISFIABLE\n" : ret == l_False ? "UNSATISFIABLE\n" : "INDETERMINATE\n");
+            fprintf(stderr, ret == l_True ? "SATISFIABLE\n" : ret == l_False ? "UNSATISFIABLE\n"
+                                                                             : "INDETERMINATE\n");
             if (res != NULL) {
                 if (ret == l_True) {
                     fprintf(res, "SAT\n");
@@ -291,11 +291,11 @@ int main(int argc, char **argv) {
 
 #ifdef NDEBUG
             exit(ret == l_True ? 10 : ret == l_False ? 20
-                                                     : 0);     // (faster than "return", which will invoke the destructor for 'Solver')
+                                                     : 0);  // (faster than "return", which will invoke the destructor for 'Solver')
 #else
-            return (ret == l_True ? 10 : ret == l_False ? 20 : 0);
+            return (ret == l_True ? 10 : ret == l_False ? 20
+                                                        : 0);
 #endif
-
         }
     } catch (OutOfMemoryException &) {
         fprintf(stderr, "===============================================================================\n");

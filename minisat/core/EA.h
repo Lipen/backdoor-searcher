@@ -6,9 +6,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "minisat/core/Solver.h"
 #include "minisat/core/Fitness.h"
 #include "minisat/core/Instance.h"
+#include "minisat/core/Solver.h"
 
 namespace Minisat {
 
@@ -17,10 +17,10 @@ class Solver;
 struct Instance;
 
 struct VectorHasher {
-    template<typename T>
+    template <typename T>
     std::size_t operator()(const std::vector<T> &vec) const {
         std::size_t seed = vec.size();
-        for (const auto &value: vec) {
+        for (const auto &value : vec) {
             seed ^= std::hash<T>{}(value) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
         }
         return seed;
@@ -28,7 +28,7 @@ struct VectorHasher {
 };
 
 class EvolutionaryAlgorithm {
-public:
+   public:
     virtual ~EvolutionaryAlgorithm() = default;
 
     explicit EvolutionaryAlgorithm(Solver &solver, int seed = -1);
@@ -43,7 +43,7 @@ public:
     int cached_hits = 0;
     int cached_misses = 0;
 
-private:
+   private:
     Instance initialize(int numVariables, std::vector<int> pool);
 
     Fitness calculateFitness(Instance &individual);

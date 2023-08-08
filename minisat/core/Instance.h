@@ -40,7 +40,7 @@ struct Instance {
 
     [[nodiscard]] int numVariables() const {
         int count = 0;
-        for (int x: data) {
+        for (int x : data) {
             if (x != -1) {
                 count++;
             }
@@ -50,10 +50,10 @@ struct Instance {
 
     [[nodiscard]] std::vector<int> getVariables() const {
         std::vector<int> variables;
-        for (int x: data) {
+        for (int x : data) {
             if (x != -1) {
                 // Note: variables in MiniSat are 0-based
-                int var = (int) x;
+                int var = (int)x;
                 variables.push_back(var);
             }
         }
@@ -63,7 +63,7 @@ struct Instance {
 
     [[nodiscard]] std::vector<bool> getBitmask(int numVars) const {
         std::vector<bool> bits(numVars);
-        for (int var: data) {
+        for (int var : data) {
             if (var != -1) {
                 bits[var] = true;
             }

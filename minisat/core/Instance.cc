@@ -46,8 +46,8 @@ Fitness Instance::calculateFitness(Solver &solver) {
             }
         }
 
-        std::vector<std::vector<int>> cubes; // hard tasks
-        uint64_t total_count; // number of hard tasks
+        std::vector<std::vector<int>> cubes;  // hard tasks
+        uint64_t total_count;                 // number of hard tasks
         bool verb = false;
         // solver.gen_all_valid_assumptions_propcheck(vars, total_count, cubes, verb);
         solver.gen_all_valid_assumptions_tree(vars, total_count, cubes, 0, verb);
@@ -93,4 +93,4 @@ Fitness Instance::calculateFitness(Solver &solver) {
     }
 }
 
-}
+}  // namespace Minisat
