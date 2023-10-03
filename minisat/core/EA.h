@@ -33,7 +33,7 @@ class EvolutionaryAlgorithm {
 
     explicit EvolutionaryAlgorithm(Solver &solver, int seed = -1);
 
-    Instance run(int numIterations, int instanceSize, std::vector<int> pool, int seed = -1);
+    Instance run(int numIterations, int instanceSize, std::vector<int> pool, const char* backdoor_path, int seed = -1);
 
     std::mt19937 gen;
     Solver &solver;

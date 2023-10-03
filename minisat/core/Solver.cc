@@ -847,7 +847,7 @@ lbool Solver::solve_() {
                 runNumber++;
                 ea->cache.clear();
                 for (int i = 0; i < 100; ++i) {
-                    ea->run(1000, 10, pool);
+                    ea->run(1000, 10, pool, "backdoor.txt");
                 }
 
                 startTime = currentTime;

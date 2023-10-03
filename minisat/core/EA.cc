@@ -39,6 +39,7 @@ Instance EvolutionaryAlgorithm::run(
     int numIterations,
     int instanceSize,
     std::vector<int> pool,
+    const char* backdoor_path,
     int seed) {
     if (seed != -1) {
         gen.seed(seed);
@@ -114,7 +115,7 @@ Instance EvolutionaryAlgorithm::run(
               << std::endl;
 
     // Dump best to file
-    std::ofstream outFile("backdoors.txt", std::ios::app);
+    std::ofstream outFile(backdoor_path, std::ios::app);
     if (outFile.is_open()) {
         outFile << "Best fitness " << bestFitness.fitness
                 << " (rho=" << bestFitness.rho

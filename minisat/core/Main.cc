@@ -120,6 +120,7 @@ int main(int argc, char **argv) {
                                     1000, IntRange(0, INT32_MAX));
         IntOption ea_instance_size("EA", "ea-instance-size", "Instance size in EA.\n",
                                    10, IntRange(1, INT32_MAX));
+        StringOption backdoor_path("EA", "backdoor-path", "Out backdoor file.\n", "backdoor.txt");
 
         parseOptions(argc, argv, true);
 
@@ -236,7 +237,7 @@ int main(int argc, char **argv) {
 
             // Run EA
             std::cout << "\n=== [" << 1 << "/" << ea_num_runs << "] -------------------------------------\n\n";
-            Instance best = ea.run(ea_num_iterations, ea_instance_size, pool);
+            Instance best = ea.run(ea_num_iterations, ea_instance_size, pool, (const char*) backdoor_path);
 
             for (int i = 2; i <= ea_num_runs; ++i) {
                 // Forbid already used variables:
@@ -250,7 +251,7 @@ int main(int argc, char **argv) {
 
                 // Another run of EA
                 std::cout << "\n=== [" << i << "/" << ea_num_runs << "] -------------------------------------\n\n";
-                best = ea.run(ea_num_iterations, ea_instance_size, pool);
+                best = ea.run(ea_num_iterations, ea_instance_size, pool, (const char*) backdoor_path);
             }
 
             auto endTime = std::chrono::high_resolution_clock::now();
