@@ -8,3 +8,6 @@ logs/
 
 backdoors*.txt
 *.ipynb
+*.csv
+*.png
+*.pdf
