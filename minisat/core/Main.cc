@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
                                     1000, IntRange(0, INT32_MAX));
         IntOption ea_instance_size("EA", "ea-instance-size", "Instance size in EA.\n",
                                    10, IntRange(1, INT32_MAX));
-        StringOption backdoor_path("EA", "backdoor-path", "Out backdoor file.\n", "backdoor.txt");
+        StringOption ea_backdoors_path("EA", "ea-backdoors-path", "Output file with backdoors found by EA. Each line contains the best backdoor for each EA run.\n", "backdoors.txt");
 
         parseOptions(argc, argv, true);
 
@@ -210,7 +210,7 @@ int main(int argc, char **argv) {
 
         if (1) {
             // Truncate the "backdoors" file beforehand:
-            std::ofstream outFile("backdoors.txt", std::ios::out | std::ios::trunc);
+            std::ofstream outFile((const char *)ea_backdoors_path, std::ios::out | std::ios::trunc);
             if (outFile.is_open()) {
                 outFile.close();
             } else {
@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
                 // Run EA
                 std::cout << "\n=== [" << 1 << "/" << ea_num_runs << "]"
                           << " -------------------------------------\n\n";
-                Instance best = ea.run(ea_num_iterations, ea_instance_size, pool, (const char *)backdoor_path);
+                Instance best = ea.run(ea_num_iterations, ea_instance_size, pool, (const char *)ea_backdoors_path);
 
                 for (int i = 2; i <= ea_num_runs; ++i) {
                     // Forbid already used variables:
@@ -254,7 +254,7 @@ int main(int argc, char **argv) {
                     // Another run of EA
                     std::cout << "\n=== [" << i << "/" << ea_num_runs << "]"
                               << " -------------------------------------\n\n";
-                    best = ea.run(ea_num_iterations, ea_instance_size, pool, (const char *)backdoor_path);
+                    best = ea.run(ea_num_iterations, ea_instance_size, pool, (const char *)ea_backdoors_path);
                 }
 
                 auto endTime = std::chrono::high_resolution_clock::now();
