@@ -1,0 +1,13 @@
+.vscode/
+.idea/
+build/
+cmake-build-release/
+cmake-build-debug/
+data/
+logs/
+
+backdoors*.txt
+*.ipynb
+*.csv
+*.png
+*.pdf

@@ -21,6 +21,10 @@ option(MINISAT_TEST_BENCHMARKS "Register benchmarks with CTest" OFF)
 option(MINISAT_INSTALL "minisat: generate the install target" ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 
 include(GNUInstallDirs)
 
@@ -30,6 +34,8 @@ add_library(libminisat STATIC
     minisat/core/Solver.cc
     minisat/core/SolverTypes.cc
     minisat/core/ThrowOOMException.cc
+    minisat/core/EA.cc
+    minisat/core/Instance.cc
     minisat/utils/Options.cc
     minisat/utils/System.cc
     minisat/simp/SimpSolver.cc
@@ -39,6 +45,9 @@ add_library(libminisat STATIC
     minisat/core/Solver.h
     minisat/core/SolverTypes.h
     minisat/core/ThrowOOMException.h
+    minisat/core/EA.h
+    minisat/core/Instance.h
+    minisat/core/Fitness.h
     minisat/mtl/Alg.h
     minisat/mtl/Alloc.h
     minisat/mtl/Heap.h
