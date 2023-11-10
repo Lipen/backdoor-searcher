@@ -1149,6 +1149,7 @@ bool Solver::gen_all_valid_assumptions_tree(
             std::cout << d_set[j] + 1 << ' ';
         }
         std::cout << '\n';
+        std::cout << "c propagations before = " << propagations << '\n';
     }
 
     int d_size = d_set.size();
@@ -1176,8 +1177,22 @@ bool Solver::gen_all_valid_assumptions_tree(
         return true;
     }
 
+    uint64_t num_propagate = 0;
+
     int cur_pos = 0;
     while (flag) {
+        ++num_propagate;
+        if (verb && num_propagate % 100000 == 0) {
+            std::cout << "c num_propagate = " << num_propagate << '\n';
+        }
+        if (verb) {
+            printf("c decisionlevel %i\n", decisionLevel());
+            printf("c current aux value: ");
+            for (int j = 0; j < decisionLevel(); j++) {
+                printf("%i ", aux[j]);
+            }
+            printf("\n");
+        }
         CRef confl = propagate();
         // At the current stage there is no need for smart analysis of conflicts
         // during essentially random sampling.
@@ -1298,6 +1313,8 @@ bool Solver::gen_all_valid_assumptions_tree(
     if (verb) {
         std::cout << "c Total: " << total_count << '\n';
         std::cout << "c Really found: " << vector_of_assumptions.size() << '\n';
+        std::cout << "c Number of propagate() calls: " << num_propagate << '\n';
+        std::cout << "c propagations after = " << propagations << '\n';
     }
     assumptions.clear();
     return true;
