@@ -208,96 +208,113 @@ int main(int argc, char **argv) {
             exit(20);
         }
 
-        // Truncate the "backdoors" file beforehand:
-        std::ofstream outFile("backdoors.txt", std::ios::out | std::ios::trunc);
-        if (outFile.is_open()) {
-            outFile.close();
-        } else {
-            std::cerr << "Error opening the file." << std::endl;
-            return 1;
-        }
-
         if (1) {
-            auto startTime = std::chrono::high_resolution_clock::now();
-            EvolutionaryAlgorithm ea(S, ea_seed);
+            // Truncate the "backdoors" file beforehand:
+            std::ofstream outFile("backdoors.txt", std::ios::out | std::ios::trunc);
+            if (outFile.is_open()) {
+                outFile.close();
+            } else {
+                std::cerr << "Error opening the file." << std::endl;
+                return 1;
+            }
 
-            std::vector<int> pool;
-            pool.reserve(S.nVars());
-            for (int i = 0; i < S.nVars(); ++i) {
-                if (S.value(i) == l_Undef) {
-                    // Note: variables in MiniSat are 0-based
-                    pool.push_back(i);
-                } else {
-                    // std::cout << "Skipping variable " << i
-                    //           << " already assigned to "
-                    //           << (S.value(i).isTrue() ? "TRUE" : "FALSE")
-                    //           << std::endl;
+            if (1) {
+                auto startTime = std::chrono::high_resolution_clock::now();
+                EvolutionaryAlgorithm ea(S, ea_seed);
+
+                std::vector<int> pool;
+                pool.reserve(S.nVars());
+                for (int i = 0; i < S.nVars(); ++i) {
+                    if (S.value(i) == l_Undef) {
+                        // Note: variables in MiniSat are 0-based
+                        pool.push_back(i);
+                    } else {
+                        // std::cout << "Skipping variable " << i
+                        //           << " already assigned to "
+                        //           << (S.value(i).isTrue() ? "TRUE" : "FALSE")
+                        //           << std::endl;
+                    }
                 }
-            }
 
-            // Run EA
-            std::cout << "\n=== [" << 1 << "/" << ea_num_runs << "] -------------------------------------\n\n";
-            Instance best = ea.run(ea_num_iterations, ea_instance_size, pool, (const char*) backdoor_path);
+                // Run EA
+                std::cout << "\n=== [" << 1 << "/" << ea_num_runs << "]"
+                          << " -------------------------------------\n\n";
+                Instance best = ea.run(ea_num_iterations, ea_instance_size, pool, (const char *)backdoor_path);
 
-            for (int i = 2; i <= ea_num_runs; ++i) {
-                // Forbid already used variables:
-                // std::vector<int> vars = best.getVariables();
-                // std::sort(vars.begin(), vars.end());
-                // std::vector<int> difference;
-                // std::set_difference(pool.begin(), pool.end(),
-                //                     vars.begin(), vars.end(),
-                //                     std::back_inserter(difference));
-                // pool = difference;
+                for (int i = 2; i <= ea_num_runs; ++i) {
+                    // Forbid already used variables:
+                    // std::vector<int> vars = best.getVariables();
+                    // std::sort(vars.begin(), vars.end());
+                    // std::vector<int> difference;
+                    // std::set_difference(pool.begin(), pool.end(),
+                    //                     vars.begin(), vars.end(),
+                    //                     std::back_inserter(difference));
+                    // pool = difference;
 
-                // Another run of EA
-                std::cout << "\n=== [" << i << "/" << ea_num_runs << "] -------------------------------------\n\n";
-                best = ea.run(ea_num_iterations, ea_instance_size, pool, (const char*) backdoor_path);
-            }
+                    // Another run of EA
+                    std::cout << "\n=== [" << i << "/" << ea_num_runs << "]"
+                              << " -------------------------------------\n\n";
+                    best = ea.run(ea_num_iterations, ea_instance_size, pool, (const char *)backdoor_path);
+                }
 
-            auto endTime = std::chrono::high_resolution_clock::now();
-            auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
-            std::cout << '\n';
-            std::cout << "Done " << ea_num_runs << " EA runs in "
-                      << duration / 1000.0 << " s" << std::endl;
+                auto endTime = std::chrono::high_resolution_clock::now();
+                auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
+                std::cout << "\nDone " << ea_num_runs << " EA runs"
+                          << " in " << duration / 1000.0 << " s"
+                          << std::endl;
 
-        } else {
-            // ------------------------------------------------------
+            } else {
+                // ------------------------------------------------------
 
-            EvolutionaryAlgorithm ea(S, ea_seed);
-            S.ea = &ea;
+                EvolutionaryAlgorithm ea(S, ea_seed);
+                S.ea = &ea;
 
-            // ------------------------------------------------------
+                // ------------------------------------------------------
 
-            vec<Lit> dummy;
-            lbool ret = S.solveLimited(dummy);
-            if (S.verbosity > 0) {
-                printStats(S);
-                fprintf(stderr, "\n");
-            }
-            fprintf(stderr, ret == l_True ? "SATISFIABLE\n" : ret == l_False ? "UNSATISFIABLE\n"
-                                                                             : "INDETERMINATE\n");
-            if (res != NULL) {
-                if (ret == l_True) {
-                    fprintf(res, "SAT\n");
-                    for (int i = 0; i < S.nVars(); i++)
-                        if (S.model[i] != l_Undef)
-                            fprintf(res, "%s%s%d", (i == 0) ? "" : " ", (S.model[i] == l_True) ? "" : "-", i + 1);
-                    fprintf(res, " 0\n");
-                } else if (ret == l_False)
-                    fprintf(res, "UNSAT\n");
-                else
-                    fprintf(res, "INDET\n");
-                fclose(res);
-            }
+                vec<Lit> dummy;
+                lbool ret = S.solveLimited(dummy);
+                if (S.verbosity > 0) {
+                    printStats(S);
+                    fprintf(stderr, "\n");
+                }
+                fprintf(stderr, ret == l_True ? "SATISFIABLE\n" : ret == l_False ? "UNSATISFIABLE\n"
+                                                                                 : "INDETERMINATE\n");
+                if (res != NULL) {
+                    if (ret == l_True) {
+                        fprintf(res, "SAT\n");
+                        for (int i = 0; i < S.nVars(); i++)
+                            if (S.model[i] != l_Undef)
+                                fprintf(res, "%s%s%d", (i == 0) ? "" : " ", (S.model[i] == l_True) ? "" : "-", i + 1);
+                        fprintf(res, " 0\n");
+                    } else if (ret == l_False)
+                        fprintf(res, "UNSAT\n");
+                    else
+                        fprintf(res, "INDET\n");
+                    fclose(res);
+                }
 
 #ifdef NDEBUG
-            exit(ret == l_True ? 10 : ret == l_False ? 20
-                                                     : 0);  // (faster than "return", which will invoke the destructor for 'Solver')
+                exit(ret == l_True ? 10 : ret == l_False ? 20
+                                                         : 0);  // (faster than "return", which will invoke the destructor for 'Solver')
 #else
-            return (ret == l_True ? 10 : ret == l_False ? 20
-                                                        : 0);
+                return (ret == l_True ? 10 : ret == l_False ? 20
+                                                            : 0);
 #endif
+            }
+        } else {
+            std::vector<int> vars;
+            for (int i = 0; i < 24; ++i) {
+                vars.push_back(i);
+            }
+            std::reverse(vars.begin(), vars.end());
+
+            std::vector<std::vector<int>> cubes;  // hard tasks
+            uint64_t total_count;                 // number of hard tasks
+            S.gen_all_valid_assumptions_tree(vars, total_count, cubes, 0, true);
+
+            std::cout << "hard tasks: " << cubes.size() << std::endl;
         }
+
     } catch (OutOfMemoryException &) {
         fprintf(stderr, "===============================================================================\n");
         fprintf(stderr, "INDETERMINATE\n");
