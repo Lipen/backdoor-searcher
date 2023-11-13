@@ -190,10 +190,10 @@ int main(int argc, char **argv) {
 
         // Change to signal-handlers that will only notify the solver and allow it to terminate
         // voluntarily:
-#if !(defined(__MINGW32__) || defined(_MSC_VER))
-        signal(SIGINT, SIGINT_interrupt);
-        signal(SIGXCPU, SIGINT_interrupt);
-#endif
+// #if !(defined(__MINGW32__) || defined(_MSC_VER))
+//         signal(SIGINT, SIGINT_interrupt);
+//         signal(SIGXCPU, SIGINT_interrupt);
+// #endif
 
         if (!S.simplify()) {
             if (res != NULL) fprintf(res, "UNSAT\n"), fclose(res);
