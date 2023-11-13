@@ -263,6 +263,11 @@ int main(int argc, char **argv) {
                           << " in " << duration / 1000.0 << " s"
                           << std::endl;
 
+                if (S.verbosity > 0) {
+                    fprintf(stderr, "\n");
+                    printStats(S);
+                }
+
             } else {
                 // ------------------------------------------------------
 
