@@ -1088,7 +1088,7 @@ bool Solver::gen_all_valid_assumptions_propcheck(
         }
 
         vec<Lit> prop;
-        bool b = prop_check(assumps, prop, 0);
+        bool b = prop_check(assumps, prop);
         cancelUntil(0);
         if (b == true) {
             vector_of_assumptions.push_back(aux);
