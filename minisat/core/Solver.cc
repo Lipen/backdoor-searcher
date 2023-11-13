@@ -1023,7 +1023,7 @@ bool Solver::prop_check(const vec<Lit>& assumps, vec<Lit>& prop, int psaving) {
             st = false;
         else if (value(p) != l_True) {
             newDecisionLevel();
-            uncheckedEnqueue(p, decisionLevel());
+            uncheckedEnqueue(p);
             confl = propagate();
         }
     }
@@ -1232,7 +1232,7 @@ bool Solver::gen_all_valid_assumptions_tree(
                     }
                     break;
                 } else {
-                    uncheckedEnqueue(p, decisionLevel());
+                    uncheckedEnqueue(p);
                     break;
                 }
             }
