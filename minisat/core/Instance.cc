@@ -24,12 +24,12 @@ Fitness Instance::calculateFitness(Solver &solver) {
         if (0) {
             bool verb = !true;
 
-            std::cout << "- PROPCHECK" << std::endl;
+            // std::cout << "- PROPCHECK" << std::endl;
             std::vector<std::vector<int>> cubes_pc;
             uint64_t total_count_pc;
             solver.gen_all_valid_assumptions_propcheck(vars, total_count_pc, cubes_pc, verb);
 
-            std::cout << "- TREE" << std::endl;
+            // std::cout << "- TREE" << std::endl;
             std::vector<std::vector<int>> cubes_tree;
             uint64_t total_count_tree;
             solver.gen_all_valid_assumptions_tree(vars, total_count_tree, cubes_tree, 0, verb);
@@ -40,9 +40,9 @@ Fitness Instance::calculateFitness(Solver &solver) {
                 std::cout << "= MISMATCH" << std::endl;
                 exit(42);
             } else {
-                std::cout << "total_count_pc = " << total_count_pc << std::endl;
-                std::cout << "total_count_tree = " << total_count_tree << std::endl;
-                std::cout << "MATCH" << std::endl;
+                // std::cout << "total_count_pc = " << total_count_pc << std::endl;
+                // std::cout << "total_count_tree = " << total_count_tree << std::endl;
+                // std::cout << "MATCH" << std::endl;
             }
         }
 
