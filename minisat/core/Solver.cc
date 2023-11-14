@@ -19,16 +19,16 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 #include "minisat/core/Solver.h"
-#include "minisat/core/EA.h"
 
 #include <math.h>
 
-#include <iostream>
-#include <vector>
 #include <chrono>
 #include <fstream>
+#include <iostream>
 #include <string>
+#include <vector>
 
+#include "minisat/core/EA.h"
 #include "minisat/mtl/Sort.h"
 
 using namespace Minisat;
@@ -809,7 +809,7 @@ lbool Solver::solve_() {
         if (ea) {
             auto currentTime = std::chrono::steady_clock::now();
             auto elapsedTime = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
-            if (first || elapsedTime > 5*60) {
+            if (first || elapsedTime > 5 * 60) {
                 first = false;
                 cancelUntil(0);
 
@@ -830,7 +830,7 @@ lbool Solver::solve_() {
                 outFile.close();
 
                 std::string learntFilename = "learnts-" + std::to_string(runNumber) + ".txt";
-                std::cout << "Dumping " << learnts.size() << " learnts to '" << learntFilename << "'" <<std::endl;
+                std::cout << "Dumping " << learnts.size() << " learnts to '" << learntFilename << "'" << std::endl;
                 std::ofstream learntFile(learntFilename, std::ios::out | std::ios::trunc);
                 for (CRef ref : learnts) {
                     Clause& learnt = ca[ref];
@@ -1132,172 +1132,183 @@ bool Solver::gen_all_valid_assumptions_propcheck(
 }
 
 bool Solver::gen_all_valid_assumptions_tree(
-    std::vector<int> d_set,
+    std::vector<int> variables,
     uint64_t& total_count,
     std::vector<std::vector<int>>& vector_of_assumptions,
     int limit,
     bool verb) {
-    // d_set - vector of variables (backdoor)
-    // total_count = ?
-    // vector_of_assumptions - vector of bitmasks
-    // (each bitmask represents a hard task)
-    assert(d_set.size() < 64);
+    // 'variables' - vector of variables (backdoor)
+    // 'total_count' - number of found hard tasks
+    // 'vector_of_assumptions' - vector of hard tasks (no more than 'limit')
+
+    assert(variables.size() < 64);
 
     if (verb) {
-        std::cout << "c checking backdoor: ";
-        for (size_t j = 0; j < d_set.size(); j++) {
-            std::cout << d_set[j] + 1 << ' ';
+        std::cerr << "c checking backdoor: ";
+        for (size_t j = 0; j < variables.size(); j++) {
+            std::cerr << variables[j] + 1 << ' ';
         }
-        std::cout << '\n';
+        std::cerr << '\n';
     }
 
-    int d_size = d_set.size();
-
-    assumptions.clear();
+    assert(ok);
     cancelUntil(0);
 
-    // aux is a bit-mask for a task
-    std::vector<int> aux(d_set.size());
-    for (size_t i = 0; i < d_set.size(); i++) {
-        aux[i] = 0;
-        assumptions.push(~mkLit(d_set[i]));
+    assumptions.clear();
+    for (size_t i = 0; i < variables.size(); i++) {
+        assumptions.push(mkLit(variables[i], false));
     }
 
-    vector_of_assumptions.clear();
-    total_count = 0;
+    std::vector<int> cube(variables.size(), 0);  // signs
+    uint64_t total_checked = 0;                  // number of 'propagate' calls
+    total_count = 0;                             // number of found valid cubes
+    vector_of_assumptions.clear();               // valid cubes (hard subtasks)
 
-    bool res = true;
-    assert(ok);
-    // int      backtrack_level;
-    bool ascend = false;
-
-    bool flag = true;
-    if (d_size == 0) {
+    if (variables.size() == 0) {
         return true;
     }
 
-    int cur_pos = 0;
-    while (flag) {
-        CRef confl = propagate();
-        // At the current stage there is no need for smart analysis of conflicts
-        // during essentially random sampling.
-        if (confl != CRef_Undef) {
-            // CONFLICT
-            // on conflict we switch ascend to true and move to the next assumption
-            ascend = true;
+    // State machine:
+    //  state = 0 -- Descending
+    //  state = 1 -- Ascending
+    //  state = 2 -- Propagating
+    //
+    int state = 0;
 
-            // if (verb) {
-            //     std::cout<<"c conflict derived for assumptions: ";
-            //     for (int j = 0; j < decisionLevel(); j++) {
-            //         std::cout << (var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1) << ' ';
-            //     }
-            //     std::cout << '\n';
-            // }
-
-        } else {
-            // NO CONFLICT
-
-            if (decisionLevel() == d_size) {
-                // found a valid vector of assumptions:
-                if (vector_of_assumptions.size() < limit) {
-                    vector_of_assumptions.push_back(aux);
-                }
-                total_count++;
-                ascend = true;
-
-                if (verb) {
-                    std::cout << "c valid vector of assumptions: ";
-                    for (int j = 0; j < decisionLevel(); j++) {
-                        std::cout << (var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1) << ' ';
-                    }
-                    std::cout << '\n';
-                }
+    while (1) {
+        if (verb) {
+            std::cerr << "cube = ";
+            for (size_t j = 0; j < variables.size(); j++) {
+                std::cerr << cube[j] << ' ';
             }
-
-            while (decisionLevel() < d_size) {
-                Lit p = assumptions[decisionLevel()];
-                newDecisionLevel();
-                if (value(p) == l_True) {
-                    // Dummy decision level:
-                    // Nope!
-                } else if (value(p) == l_False) {
-                    ascend = true;
-
-                    if (verb) {
-                        std::cout << "c propagated a different value for assumptions: ";
-                        for (int j = 0; j < decisionLevel(); j++) {
-                            std::cout << aux[j] << ' ';
-                        }
-                        std::cout << '\n';
-                    }
-                    break;
-                } else {
-                    uncheckedEnqueue(p);
-                    break;
-                }
-            }
+            std::cerr << ", level = " << decisionLevel() << ", state = " << state << std::endl;
         }
 
-        if (ascend == true) {
-            assert(decisionLevel() <= d_size + 1);
-            // if (verb) {
-            //     printf("c decisionlevel %i\n", decisionLevel());
-            //     printf("c current aux value: ");
-            //     for (int j = 0; j < decisionLevel(); j++) {
-            //         printf("%i ", aux[j]);
-            //     }
-            //     printf("\n");
-            // }
-            ascend = false;
-            int g = decisionLevel() - 1;
-            while (g >= 0) {
-                if (aux[g] == 1) {
-                    g--;
-                } else {
-                    break;
+        assert(decisionLevel() <= variables.size());
+
+        if (state == 0) {
+            // Descending.
+
+            if (decisionLevel() == variables.size()) {
+                if (verb) {
+                    std::cerr << "c found valid vector of assumptions: ";
+                    for (int j = 0; j < decisionLevel(); j++) {
+                        std::cerr << (var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1) << ' ';
+                    }
+                    std::cerr << '\n';
+                }
+                if (vector_of_assumptions.size() < limit) {
+                    vector_of_assumptions.push_back(cube);
+                }
+                total_count++;
+                state = 1;  // state = Ascending
+            } else {
+                while (decisionLevel() < variables.size()) {
+                    newDecisionLevel();
+                    Lit p = assumptions[decisionLevel() - 1];
+                    if (value(p) == l_True) {
+                        // `p` is already True.
+                        // do nothing
+                    } else if (value(p) == l_False) {
+                        // if (verb) {
+                        //     std::cerr << "c propagated a different value for assumptions: ";
+                        //     for (int j = 0; j < decisionLevel(); j++) {
+                        //         std::cerr << cube[j] << ' ';
+                        //     }
+                        //     std::cerr << '\n';
+                        // }
+                        state = 1;  // state = Ascending
+                        break;
+                    } else if (value(p) == l_Undef) {
+                        uncheckedEnqueue(p);
+                        state = 2;  // state = Propagating
+                        break;
+                    } else {
+                        // Bad value.
+                        exit(1);
+                    }
                 }
             }
-            if (g == -1) {
-                // time to break;
-                flag = false;
+
+        } else if (state == 1) {
+            // Ascending.
+
+            assert(decisionLevel() > 0);
+
+            int i = decisionLevel();  // 1-based index
+            while (i > 0 && cube[i - 1]) {
+                i--;
+            }
+            if (i == 0) {
+                // Finish.
                 break;
             }
-            int g_s = g;
 
-            assert(aux[g] == 0);
-            aux[g] = 1;
-            // move to the next binary number
-            if (g < d_size) {
-                g++;
-                while (g < d_size) {
-                    aux[g] = 0;
-                    g++;
-                }
+            assert(cube[i - 1] == 0);
+            cube[i - 1] = 1;
+            for (int j = i; j < variables.size(); j++) {
+                cube[j] = 0;
             }
-
             // if (verb) {
-            //     printf("c next aux value: ");
-            //     for (int j = 0; j < d_size; j++) {
-            //         printf("%i ", aux[j]);
+            //     std::cerr << "c next cube: ";
+            //     for (int j = 0; j < variables.size(); j++) {
+            //         std::cerr << cube[j] << ' ';
             //     }
-            //     printf("\n");
+            //     std::cerr << '\n';
             // }
-            // modify assumptions
-            for (int j = g_s; j < d_size; j++) {
-                if (aux[j] == 0) {
-                    assumptions[j] = ~mkLit(d_set[j]);
-                } else {
-                    assumptions[j] = mkLit(d_set[j]);
-                }
+
+            // Modify assumptions:
+            for (int j = i; j <= variables.size(); j++) {
+                assumptions[j - 1] = mkLit(variables[j - 1], cube[j - 1]);
             }
-            cancelUntil(g_s);
+
+            // Backtrack before i-th level:
+            cancelUntil(i - 1);
+
+            // Switch state:
+            state = 0;  // state = Descending
+
+        } else if (state == 2) {
+            // Propagating.
+
+            CRef confl = propagate();
+            total_checked++;
+            if (confl != CRef_Undef) {
+                // CONFLICT
+
+                // if (verb) {
+                //     std::cerr<<"c conflict derived for assumptions: ";
+                //     for (int j = 0; j < decisionLevel(); j++) {
+                //         std::cerr << (var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1) << ' ';
+                //     }
+                //     std::cerr << '\n';
+                // }
+
+                state = 1;  // state = Ascending
+            } else {
+                // NO CONFLICT
+
+                // if (verb) {
+                //     std::cerr<<"c no conflict for assumptions: ";
+                //     for (int j = 0; j < decisionLevel(); j++) {
+                //         std::cerr << (var(assumptions[j]) + 1) * (-2 * sign(assumptions[j]) + 1) << ' ';
+                //     }
+                //     std::cerr << '\n';
+                // }
+
+                state = 0;  // state = Descending
+            }
+
+        } else {
+            std::cerr << "Bad state: " << state << std::endl;
+            exit(1);
+            break;
         }
     }
 
     cancelUntil(0);
     if (verb) {
-        std::cout << "c Total: " << total_count << '\n';
-        std::cout << "c Really found: " << vector_of_assumptions.size() << '\n';
+        std::cout << "c Checked: " << total_checked << ", found valid: " << total_count << '\n';
     }
     assumptions.clear();
     return true;
