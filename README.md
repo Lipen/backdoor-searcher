@@ -23,16 +23,17 @@ After building the code, you can use `./build/minisat` binary to search for back
 Here is an example command:
 
 ```sh
-./build/minisat original.cnf -ea-seed=42 -ea-instance-size=10 -ea-num-runs=100 -ea-num-iters=1000
+./build/minisat original.cnf -ea-seed=42 -ea-num-runs=100 -ea-instance-size=10 -ea-num-iters=1000 -ea-output-path=backdoors_100x10x1000.txt
 ```
 
 Replace `original.cnf` with the path to your CNF file.
 
 ## Parameters
 
+- `-ea-num-runs`: Number of backdoors (each EA run produces one "best" backdoor).
 - `-ea-instance-size`: Size of each backdoor.
-- `-ea-num-runs`: Number of backdoors.
-- `-ea-num-iters`: Number of iterations for each backdoor.
-- `-ea-seed`: Random seed for the algorithm.
+- `-ea-num-iters`: Number of EA iterations for each backdoor.
+- `-ea-seed`: Random seed.
+- `-ea-output-path`: Output file with backdoors.
 
-The resulting backdoor will be saved in the `backdoors.txt` file.
+The resulting backdoor(s) will be saved in the specified output file (by default, `backdoors.txt`).
