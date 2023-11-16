@@ -260,6 +260,24 @@ class ClauseAllocator : public RegionAllocator<uint32_t>
     }
 };
 
+//=================================================================================================
+// ClauseIterator -- iterator over clauses;
+
+class ClauseIterator {
+    const ClauseAllocator& ca;
+    const CRef* crefs;
+
+   public:
+    ClauseIterator(const ClauseAllocator& _ca, const CRef* _crefs) : ca(_ca), crefs(_crefs) {}
+
+    void operator++() { crefs++; }
+    const Clause& operator*() const { return ca[*crefs]; }
+
+    // NOTE: does not compare that references use the same clause-allocator:
+    bool operator==(const ClauseIterator& ci) const { return crefs == ci.crefs; }
+    bool operator!=(const ClauseIterator& ci) const { return crefs != ci.crefs; }
+};
+
 
 //=================================================================================================
 // OccLists -- a class for maintaining occurence lists with lazy deletion:

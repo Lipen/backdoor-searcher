@@ -222,18 +222,41 @@ int main(int argc, char **argv) {
                 auto startTime = std::chrono::high_resolution_clock::now();
                 EvolutionaryAlgorithm ea(S, ea_seed);
 
+                // Determine holes in the original CNF:
+                std::vector<bool> hole(S.nVars(), true);
+                for (ClauseIterator it = S.clausesBegin(); it != S.clausesEnd(); ++it) {
+                    const Clause& c = *it;
+                    for (int i = 0; i < c.size(); ++i) {
+                        Var v = var(c[i]);
+                        hole[v] = false;
+                    }
+                }
+
                 std::vector<int> pool;
                 pool.reserve(S.nVars());
-                for (int i = 0; i < S.nVars(); ++i) {
-                    if (S.value(i) == l_Undef) {
-                        // Note: variables in MiniSat are 0-based
-                        pool.push_back(i);
-                    } else {
-                        // std::cout << "Skipping variable " << i
-                        //           << " already assigned to "
-                        //           << (S.value(i).isTrue() ? "TRUE" : "FALSE")
-                        //           << std::endl;
+                // Note: variables in MiniSat are 0-based!
+                for (Var v = 0; v < S.nVars(); ++v) {
+                    // Skip the "holes":
+                    if (hole[v]) {
+                        if (S.verbosity > 0) {
+                            std::cout << "Skipping hole " << v << std::endl;
+                        }
+                        continue;
                     }
+
+                    // Skip already assigned variables:
+                    if (S.value(v) != l_Undef) {
+                        if (S.verbosity > 0) {
+                            std::cout << "Skipping variable " << v
+                                      << " already assigned to "
+                                      << (S.value(v).isTrue() ? "TRUE" : "FALSE")
+                                      << std::endl;
+                        }
+                        continue;
+                    }
+
+                    // Add suitable variable to the pool:
+                    pool.push_back(v);
                 }
 
                 // Run EA
