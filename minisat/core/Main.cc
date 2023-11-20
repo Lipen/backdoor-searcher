@@ -237,7 +237,7 @@ int main(int argc, char **argv) {
                 // Note: variables in MiniSat are 0-based!
                 for (Var v = 0; v < S.nVars(); ++v) {
                     // Skip the "holes":
-                    if (hole[v]) {
+                    if (hole[v] && S.value(v) == l_Undef) {
                         if (S.verbosity > 0) {
                             std::cout << "Skipping hole " << v << std::endl;
                         }
