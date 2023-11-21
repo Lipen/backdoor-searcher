@@ -20,6 +20,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef Minisat_IntTypes_h
 #define Minisat_IntTypes_h
 
+#define __STDC_FORMAT_MACROS 1
+
 #ifdef __sun
     // Not sure if there are newer versions that support C99 headers. The
     // needed features are implemented in the headers below though:
