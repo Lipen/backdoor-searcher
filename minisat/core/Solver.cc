@@ -887,7 +887,7 @@ static Var mapVar(Var x, vec<Var>& map, Var& max) {
     return map[x];
 }
 
-void Solver::toDimacs(FILE* f, Clause& c, vec<Var>& map, Var& max) {
+void Solver::toDimacs(FILE* f, const Clause& c, vec<Var>& map, Var& max) {
     if (satisfied(c)) return;
 
     for (int i = 0; i < c.size(); i++)
@@ -896,15 +896,25 @@ void Solver::toDimacs(FILE* f, Clause& c, vec<Var>& map, Var& max) {
     fprintf(f, "0\n");
 }
 
-void Solver::toDimacs(const char* file, const vec<Lit>& assumps) {
+void Solver::toDimacs(const char* file, const char* mapFile) {
     FILE* f = fopen(file, "wr");
-    if (f == NULL)
-        fprintf(stderr, "could not open file %s\n", file), exit(1);
-    toDimacs(f, assumps);
+    if (f == NULL) {
+        fprintf(stderr, "could not open file %s\n", file);
+        exit(1);
+    }
+    FILE* fMap = NULL;
+    if (mapFile != NULL) {
+        fMap = fopen(mapFile, "wr");
+        if (fMap == NULL) {
+            fprintf(stderr, "could not open file %s\n", mapFile);
+            exit(1);
+        }
+    }
+    toDimacs(f, fMap);
     fclose(f);
 }
 
-void Solver::toDimacs(FILE* f, const vec<Lit>&) {
+void Solver::toDimacs(FILE* f, FILE* fMap) {
     // Handle case when solver is in contradictory state:
     if (!ok) {
         fprintf(f, "p cnf 1 2\n1 0\n-1 0\n");
@@ -948,6 +958,13 @@ void Solver::toDimacs(FILE* f, const vec<Lit>&) {
 
     if (verbosity > 0)
         fprintf(stderr, "Wrote %d clauses with %d variables.\n", cnt, max);
+
+    // Write map file:
+    if (fMap != NULL) {
+        for (Var v = 0; v < nVars(); v++) {
+            fprintf(fMap, "%d %d\n", v, map[v]);
+        }
+    }
 }
 
 //=================================================================================================
