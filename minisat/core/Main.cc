@@ -120,6 +120,7 @@ int main(int argc, char **argv) {
                                     1000, IntRange(0, INT32_MAX));
         IntOption ea_instance_size("EA", "ea-instance-size", "Instance size in EA.\n",
                                    10, IntRange(1, INT32_MAX));
+        StringOption ea_bans("EA", "ea-bans", "Comma-separated list of non-negative 0-based variable indices to ban.");
         StringOption ea_output_path("EA", "ea-output-path", "Output file with backdoors found by EA. Each line contains the best backdoor for each EA run.\n", "backdoors.txt");
 
         parseOptions(argc, argv, true);
@@ -232,6 +233,18 @@ int main(int argc, char **argv) {
                     }
                 }
 
+                // Ban the variables passed via '-ea-bans' option:
+                std::vector<bool> banned(S.nVars(), false);
+                if (ea_bans != NULL) {
+                    char* s = strdup((const char*) ea_bans);
+                    char* p = strtok(s, ",");
+                    while (p != NULL) {
+                        Var v = atoi(p);
+                        banned[v] = true;
+                        p = strtok(NULL, ",");
+                    }
+                }
+
                 std::vector<int> pool;
                 pool.reserve(S.nVars());
                 // Note: variables in MiniSat are 0-based!
@@ -242,6 +255,13 @@ int main(int argc, char **argv) {
                             std::cout << "Skipping hole " << v << std::endl;
                         }
                         continue;
+                    }
+
+                    // Skip banned variables:
+                    if (banned[v]) {
+                        if (S.verbosity > 0) {
+                            std::cout << "Skipping banned variable " << v << std::endl;
+                        }
                     }
 
                     // Skip already assigned variables:
