@@ -25,6 +25,9 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <set>
+#include <string>
+#include <sstream>
 
 #include "minisat/core/Dimacs.h"
 #include "minisat/core/EA.h"
@@ -88,6 +91,37 @@ static void SIGINT_exit(int) {
 }
 #endif
 
+std::vector<int> parse_comma_separated_intervals(const std::string& input) {
+    std::vector<int> result;
+    std::istringstream iss(input);
+    std::string part;
+    while (std::getline(iss, part, ',')) {
+        std::istringstream range_ss(part);
+        std::string range_part;
+        std::vector<std::string> range_parts;
+        while (std::getline(range_ss, range_part, '-')) {
+            range_parts.push_back(range_part);
+        }
+        if (range_parts.size() == 2) {
+            int start = std::stoi(range_parts[0]);
+            int end = std::stoi(range_parts[1]);
+            if (start <= end) {
+                for (int i = start; i <= end; ++i) {
+                    result.push_back(i);
+                }
+            } else {
+                for (int i = start; i >= end; --i) {
+                    result.push_back(i);
+                }
+            }
+        } else {
+            int single = std::stoi(range_parts[0]);
+            result.push_back(single);
+        }
+    }
+    return result;
+}
+
 //=================================================================================================
 // Main:
 
@@ -120,7 +154,8 @@ int main(int argc, char **argv) {
                                     1000, IntRange(0, INT32_MAX));
         IntOption ea_instance_size("EA", "ea-instance-size", "Instance size in EA.\n",
                                    10, IntRange(1, INT32_MAX));
-        StringOption ea_bans("EA", "ea-bans", "Comma-separated list of non-negative 0-based variable indices to ban.");
+        StringOption ea_vars("EA", "ea-vars", "Comma-separated list of non-negative 0-based variable indices to use for EA.");
+        StringOption ea_bans("EA", "ea-bans", "Comma-separated list of non-negative 0-based variable indices to ban in EA.");
         StringOption ea_output_path("EA", "ea-output-path", "Output file with backdoors found by EA. Each line contains the best backdoor for each EA run.\n", "backdoors.txt");
 
         parseOptions(argc, argv, true);
@@ -236,22 +271,31 @@ int main(int argc, char **argv) {
                 // Ban the variables passed via '-ea-bans' option:
                 std::vector<bool> banned(S.nVars(), false);
                 if (ea_bans != NULL) {
-                    char* s = strdup((const char*) ea_bans);
-                    char* p = strtok(s, ",");
-                    while (p != NULL) {
-                        Var v = atoi(p);
+                    std::vector<int> vars = parse_comma_separated_intervals((const char*) ea_bans);
+                    for (Var v : vars) {
                         banned[v] = true;
-                        p = strtok(NULL, ",");
                     }
                 }
 
-                std::vector<int> pool;
-                pool.reserve(S.nVars());
                 // Note: variables in MiniSat are 0-based!
-                for (Var v = 0; v < S.nVars(); ++v) {
+
+                std::set<int> possible_vars;
+                if (ea_vars != NULL) {
+                    std::vector<int> vars = parse_comma_separated_intervals((const char*) ea_vars);
+                    std::copy(vars.begin(), vars.end(), std::inserter(possible_vars, possible_vars.end()));
+                } else {
+                    for (Var v = 0; v < S.nVars(); ++v) {
+                        possible_vars.insert(v);
+                    }
+                }
+                // std::cout << "Possible vars: " << possible_vars.size() << std::endl;
+
+                std::vector<Var> pool;
+
+                for (Var v : possible_vars) {
                     // Skip the "holes":
                     if (hole[v] && S.value(v) == l_Undef) {
-                        if (S.verbosity > 0) {
+                        if (S.verbosity > 1) {
                             std::cout << "Skipping hole " << v << std::endl;
                         }
                         continue;
@@ -259,14 +303,15 @@ int main(int argc, char **argv) {
 
                     // Skip banned variables:
                     if (banned[v]) {
-                        if (S.verbosity > 0) {
+                        if (S.verbosity > 1) {
                             std::cout << "Skipping banned variable " << v << std::endl;
                         }
+                        continue;
                     }
 
                     // Skip already assigned variables:
                     if (S.value(v) != l_Undef) {
-                        if (S.verbosity > 0) {
+                        if (S.verbosity > 1) {
                             std::cout << "Skipping variable " << v
                                       << " already assigned to "
                                       << (S.value(v).isTrue() ? "TRUE" : "FALSE")
@@ -277,6 +322,11 @@ int main(int argc, char **argv) {
 
                     // Add suitable variable to the pool:
                     pool.push_back(v);
+                }
+
+                std::sort(pool.begin(), pool.end());
+                if (S.verbosity > 0) {
+                    std::cout << "Pool size: " << pool.size() << std::endl;
                 }
 
                 // Run EA
